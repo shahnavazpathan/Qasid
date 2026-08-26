@@ -311,6 +311,17 @@ app.post("/api/check", async (req, res) => {
 });
 
 /* =========================================================
+   HEALTH CHECK ROUTE (Used for UptimeRobot / Render Keep-Alive)
+========================================================= */
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =========================================================
    FRONTEND ROUTE
 ========================================================= */
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
