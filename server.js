@@ -5,7 +5,7 @@ const Jimp = require("jimp");
 const { createWorker } = require("tesseract.js");
 const dotenv = require("dotenv").config();
 const crypto = require('crypto');
-
+const cors = require("cors");
 const app = express();
 const PORT = 3000;
 
@@ -34,32 +34,55 @@ const BIGSHARE_SERVERS = [
    EXPRESS
 ========================================================= */
 
-
+app.use(cors());
 app.use(express.json());
 
 const SECRET_API_KEY = process.env.SECRET_API_KEY;
 const pushTokens = new Set(); // Stores device tokens
 
 
-// 1. HMAC Signature Middleware
+// Allowed web domains (whitelist)
+const ALLOWED_WEB_DOMAINS = [
+  "https://qasid.thevellora.co.in",
+  "https://ipo.thevellora.co.in",
+  "https://qasid-x637.onrender.com",
+  "http://localhost:3000",
+  "http://localhost:8081"
+];
+
+// Authentication & Domain Whitelist Middleware
 app.use((req, res, next) => {
-  // Let the frontend website load without a key
+  // 1. Allow public static assets
   if (req.path === '/' || req.path.startsWith('/public')) return next();
-  
+
+  const origin = req.headers.origin;
+  const referer = req.headers.referer;
+
+  // 2. Bypass secret key check if request originates from your whitelisted websites
+  const isWhitelistedWeb = ALLOWED_WEB_DOMAINS.some(domain => 
+    (origin && origin.startsWith(domain)) || 
+    (referer && referer.startsWith(domain)) ||
+    (req.headers.host && domain.includes(req.headers.host))
+  );
+
+  if (isWhitelistedWeb) {
+    return next();
+  }
+
+  // 3. For all other clients (like the Mobile APK), enforce HMAC signature verification
   const signature = req.headers['x-signature'];
   const timestamp = req.headers['x-timestamp'];
 
   if (!signature || !timestamp) {
-    return res.status(403).json({ error: "Missing signature" });
+    return res.status(403).json({ error: "Unauthorized: Missing signature" });
   }
 
   // Prevent Replay Attacks: Reject requests older than 2 minutes
   const now = Date.now();
-  if (now - parseInt(timestamp) > 120000) {
+  if (now - parseInt(timestamp, 10) > 120000) {
     return res.status(403).json({ error: "Request expired" });
   }
 
-  // Re-create the signature on the server to see if it matches the app's signature
   const bodyString = Object.keys(req.body).length ? JSON.stringify(req.body) : "";
   const payload = timestamp + req.path + bodyString;
   
@@ -69,7 +92,7 @@ app.use((req, res, next) => {
     .digest('hex');
 
   if (signature !== expectedSignature) {
-    return res.status(403).json({ error: "Invalid signature" });
+    return res.status(403).json({ error: "Unauthorized: Invalid signature" });
   }
 
   next();
