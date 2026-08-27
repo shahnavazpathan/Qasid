@@ -255,9 +255,7 @@
     const checkButton = document.getElementById('checkButton');
     const statusBox = document.getElementById('status');
 
-    pansInput.addEventListener('input', function() {
-      this.value = this.value.toUpperCase();
-    });
+ 
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
