@@ -255,8 +255,6 @@
     const checkButton = document.getElementById('checkButton');
     const statusBox = document.getElementById('status');
 
- 
-
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -398,6 +396,16 @@
           renderSavedList();
         }
 
+        // Rank results: 1. Allotted, 2. Not Allotted, 3. Not Applied, 4. Errors
+        data.results.sort((a, b) => {
+          const getRank = (r) => {
+            if (r.success && r.data) return parseInt(r.data.Allotted, 10) > 0 ? 1 : 2;
+            if (r.error === 'You have not applied for this IPO.') return 3;
+            return 4;
+          };
+          return getRank(a) - getRank(b);
+        });
+
         renderResults(data.results);
       } catch (err) {
         statusBox.innerHTML = `<div class="status-message error">${err.message || 'Server error occurred.'}</div>`;
@@ -409,6 +417,10 @@
 
     function renderResults(results) {
       statusBox.innerHTML = results.map(res => {
+        // Fetch saved name for "Not Applied" cases
+        const savedMatch = savedPans.find(p => p.pan === res.pan);
+        const knownName = (savedMatch && savedMatch.name !== 'Check allotment to fetch name') ? savedMatch.name : null;
+
         let statusBadge = '';
         if (res.success && res.data) {
           const isAllotted = parseInt(res.data.Allotted, 10) > 0;
@@ -419,9 +431,11 @@
 
         let content = '';
         if (res.error === 'You have not applied for this IPO.') {
-          content = '<div class="result-error">You have not applied for this IPO.</div>';
+          content = `<div class="result-error">You have not applied for this IPO.</div>`;
+          if (knownName) content = `<div class="investor-details"><div style="margin-bottom: 2px;"><strong>Name:</strong> ${knownName}</div></div>` + content;
         } else if (!res.success) {
           content = `<div class="result-error">${res.error || 'Details unavailable.'}</div>`;
+          if (knownName) content = `<div class="investor-details"><div style="margin-bottom: 2px;"><strong>Name:</strong> ${knownName}</div></div>` + content;
         } else {
           content = `
             <div class="investor-details">
