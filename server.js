@@ -349,7 +349,26 @@ async function runIpoMonitor() {
 
 async function startIpoMonitor() {
   await initializeIpoMonitor();
-  setInterval(runIpoMonitor, 5 * 60 * 1000);
+
+  function scheduleNextRun() {
+    // 1. Get current time in IST
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const istDate = new Date(utc + (330 * 60000)); // IST is UTC+5:30
+    const hour = istDate.getHours();
+
+    // 2. Determine interval: 1 min between 7 PM (19) and 4 AM (4), else 5 mins
+    const intervalMs = (hour >= 19 || hour < 4) ? (1 * 60 * 1000) : (5 * 60 * 1000);
+
+    // 3. Schedule the monitor
+    setTimeout(async () => {
+      await runIpoMonitor();
+      scheduleNextRun(); // Re-schedule for the next cycle
+    }, intervalMs);
+  }
+
+  // Start the scheduling loop
+  scheduleNextRun();
 }
 
 /* =========================================================
