@@ -3,6 +3,7 @@ import { STAGES } from "../lib/ipo.js";
 const TONES = {
   neutral: "bg-raised text-ink-2",
   brand: "bg-brand-soft text-brand",
+  outline: "bg-surface text-brand ring-1 ring-brand/30",
   open: "bg-open-soft text-open",
   upcoming: "bg-upcoming-soft text-upcoming",
   closed: "bg-closed-soft text-closed",
@@ -28,7 +29,7 @@ export function StageChip({ status }) {
 }
 
 export function TypeChip({ type }) {
-  return type === "SME" ? <Chip tone="sme">SME</Chip> : <Chip tone="brand">Mainboard</Chip>;
+  return type === "SME" ? <Chip tone="sme">SME</Chip> : <Chip tone="outline">Mainboard</Chip>;
 }
 
 // Subscription colour scale: <1x grey, 1–10x amber, 10–50x green, 50x+ violet

@@ -26,23 +26,37 @@ const ALLOWED_WEB_DOMAINS = [
   "https://qasid-x637.onrender.com",
   "http://localhost:3000",
   "http://localhost:8081",
+  "http://localhost:5173",
   // Extra dev/preview origins, comma-separated (e.g. EXTRA_ORIGINS=http://localhost:3100)
   ...(process.env.EXTRA_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean)
 ];
 
+const ALLOWED_ORIGINS = new Set(ALLOWED_WEB_DOMAINS.map(d => d.replace(/\/+$/, "")));
+
+// Exact origin of a header URL ("https://site/path?x" -> "https://site"); null if unparseable.
+// Exact matching matters: a prefix check would also accept "https://qasid.thevellora.co.in.evil.com".
+function originOf(value) {
+  try { return new URL(value).origin; } catch { return null; }
+}
+
+function isAllowedBrowserRequest(req) {
+  if (req.headers.origin) return ALLOWED_ORIGINS.has(originOf(req.headers.origin));
+  if (req.headers.referer) return ALLOWED_ORIGINS.has(originOf(req.headers.referer));
+  return false;
+}
+
+function signatureMatches(signature, expected) {
+  const a = Buffer.from(String(signature), "utf8");
+  const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 app.use((req, res, next) => {
-  if (req.path === "/" || req.path === "/health" || !req.path.startsWith("/api/")) return next();
+  if (!req.path.startsWith("/api/")) return next();
 
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
-
-  const isWhitelistedWeb = ALLOWED_WEB_DOMAINS.some(domain =>
-    (origin && origin.startsWith(domain)) ||
-    (referer && referer.startsWith(domain)) ||
-    (req.headers.host && domain.includes(req.headers.host))
-  );
-
-  if (isWhitelistedWeb) return next();
+  // Our own web app (browser sends Origin/Referer). The Host header is NOT trusted: every request
+  // to the deployed domain carries it, which previously let anyone skip signature checks.
+  if (isAllowedBrowserRequest(req)) return next();
 
   const signature = req.headers["x-signature"];
   const timestamp = req.headers["x-timestamp"];
@@ -50,14 +64,14 @@ app.use((req, res, next) => {
   if (!signature || !timestamp) return res.status(403).json({ error: "Unauthorized: Missing signature" });
   if (!SECRET_API_KEY) return res.status(500).json({ error: "Server misconfigured: SECRET_API_KEY not set" });
 
-  const now = Date.now();
-  if (now - parseInt(timestamp, 10) > 120000) return res.status(403).json({ error: "Request expired" });
+  const ts = parseInt(timestamp, 10);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > 120000) return res.status(403).json({ error: "Request expired" });
 
   const bodyString = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : "";
   const payload = timestamp + req.path + bodyString;
 
   const expectedSignature = crypto.createHmac("sha256", SECRET_API_KEY).update(payload).digest("hex");
-  if (signature !== expectedSignature) return res.status(403).json({ error: "Unauthorized: Invalid signature" });
+  if (!signatureMatches(signature, expectedSignature)) return res.status(403).json({ error: "Unauthorized: Invalid signature" });
 
   next();
 });
@@ -102,7 +116,8 @@ async function fetchRegistrarIpos(registrar) {
       registrar: registrar.label
     }));
     if (ipos.length === 0) throw new Error("empty IPO list - page format may have changed");
-    ipos.sort((a, b) => (parseInt(b.clientId, 10) || 0) - (parseInt(a.clientId, 10) || 0));
+    // Registrar pages already list newest first; only registrars with sequential IDs are re-sorted by ID
+    if (registrar.sortById) ipos.sort((a, b) => (parseInt(b.clientId, 10) || 0) - (parseInt(a.clientId, 10) || 0));
     lastGoodLists.set(registrar.id, ipos);
     registrarStatus.set(registrar.id, { ok: true, count: ipos.length, ms: Date.now() - startedAt, at: Date.now() });
     return ipos;
@@ -111,6 +126,27 @@ async function fetchRegistrarIpos(registrar) {
     registrarStatus.set(registrar.id, { ok: false, error: err.message, ms: Date.now() - startedAt, at: Date.now() });
     return lastGoodLists.get(registrar.id) || [];
   }
+}
+
+const SERVER_STARTED = Date.now();
+
+// name -> allotment date (falls back to listing/close date) using the IPO board; unknown -> null
+async function allotmentDateLookup() {
+  let board;
+  try { board = await market.getBoard(); } catch { return () => null; }
+  const dates = new Map();
+  for (const item of ["open", "closed", "listed", "upcoming"].flatMap(s => board[s] || [])) {
+    const date = item.allotmentDate || item.listingDate || item.closeDate;
+    if (date) dates.set(market.normName(item.name), date);
+  }
+  const keys = [...dates.keys()];
+  return name => {
+    const key = market.normName(String(name).replace(/^\[[^\]]+\]\s*/, ""));
+    if (!key) return null;
+    if (dates.has(key)) return dates.get(key);
+    const hits = keys.filter(k => Math.min(k.length, key.length) >= 6 && (k.startsWith(key) || key.startsWith(k)));
+    return hits.length === 1 ? dates.get(hits[0]) : null;
+  };
 }
 
 async function fetchLiveIpoList(forceRefresh = false) {
@@ -123,19 +159,31 @@ async function fetchLiveIpoList(forceRefresh = false) {
       const merged = perRegistrar.flat();
       const nowTime = Date.now();
       const registrarOrder = new Map(registrars.map((r, i) => [r.id, i]));
+      // Position within its own registrar's list (each list is newest-first) - used to interleave registrars
+      const rankInRegistrar = new Map(perRegistrar.flatMap(list => list.map((ipo, i) => [ipoIdentity(ipo), i])));
+      const allotmentDates = await allotmentDateLookup();
 
       merged.forEach(ipo => {
         const key = ipoIdentity(ipo);
         if (!ipoDiscoveryTimes.has(key)) ipoDiscoveryTimes.set(key, nowTime);
         ipo.discoveredAt = ipoDiscoveryTimes.get(key);
+        ipo.allotmentDate = allotmentDates(ipo.name);
       });
 
-      // Newly discovered IPOs float to the top across all registrars
+      // Latest allotment first, regardless of registrar:
+      // 1. allotments that appeared while the server was running (newest first)
+      // 2. by allotment date from the IPO board (newest first; unknown dates last)
+      // 3. interleave registrars by each one's own newest-first order
+      const freshAfter = SERVER_STARTED + 2 * 60 * 1000;
       merged.sort((a, b) => {
-        if (b.discoveredAt !== a.discoveredAt) return b.discoveredAt - a.discoveredAt;
-        const regDiff = registrarOrder.get(a.source) - registrarOrder.get(b.source);
-        if (regDiff) return regDiff;
-        return (parseInt(b.clientId, 10) || 0) - (parseInt(a.clientId, 10) || 0);
+        const freshA = a.discoveredAt > freshAfter ? a.discoveredAt : 0;
+        const freshB = b.discoveredAt > freshAfter ? b.discoveredAt : 0;
+        if (freshA !== freshB) return freshB - freshA;
+        const dateDiff = String(b.allotmentDate || "").localeCompare(String(a.allotmentDate || ""));
+        if (dateDiff) return dateDiff;
+        const rankDiff = rankInRegistrar.get(ipoIdentity(a)) - rankInRegistrar.get(ipoIdentity(b));
+        if (rankDiff) return rankDiff;
+        return registrarOrder.get(a.source) - registrarOrder.get(b.source);
       });
 
       if (merged.length === 0 && ipoCache.data) return ipoCache.data;
@@ -314,6 +362,17 @@ app.get("/api/market/ipo/:symbol", async (req, res) => {
   } catch (error) {
     console.error(`[MARKET] Detail ${symbol}:`, error.message);
     res.status(502).json({ success: false, error: "Details unavailable right now." });
+  }
+});
+
+app.get("/api/market/gmp-history", async (req, res) => {
+  const gmpPath = String(req.query.path || "");
+  if (!/^\/gmp\/[a-z0-9-]+\/\d+\/$/.test(gmpPath)) return res.status(400).json({ success: false, error: "Invalid path." });
+  try {
+    res.json({ success: true, history: await market.getGmpHistory(gmpPath) });
+  } catch (error) {
+    console.error("[MARKET] GMP history:", error.message);
+    res.status(502).json({ success: false, error: "GMP history unavailable right now." });
   }
 });
 

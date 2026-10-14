@@ -10,10 +10,10 @@ import { QuickCheck } from "../allotment/QuickCheck.jsx";
 
 function StatTile({ label, value, icon, tone, onClick }) {
   return (
-    <button onClick={onClick} className="text-left rounded-2xl bg-white/12 hover:bg-white/20 transition-colors p-3.5 backdrop-blur-sm">
+    <button onClick={onClick} className="text-left rounded-2xl bg-surface/85 hover:bg-surface ring-1 ring-brand/10 transition-colors p-3.5">
       <span className={`size-8 grid place-items-center rounded-xl ${tone}`}><Icon name={icon} className="size-4.5" /></span>
       <p className="mt-2.5 text-[26px] font-extrabold leading-none">{value ?? "–"}</p>
-      <p className="mt-1 text-[12px] font-semibold text-white/80">{label}</p>
+      <p className="mt-1 text-[12px] font-semibold text-ink-2">{label}</p>
     </button>
   );
 }
@@ -88,14 +88,14 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
 
   return (
     <div>
-      <section className="hero-gradient text-white rounded-[28px] p-5 sm:p-8 shadow-pop relative overflow-hidden">
+      <section className="hero-gradient text-ink rounded-[28px] p-5 sm:p-8 ring-1 ring-brand/15 relative overflow-hidden">
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-white/80 font-semibold text-[13px]">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
+            <p className="text-ink-2 font-semibold text-[13px]">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
             <h1 className="mt-1 text-[28px] sm:text-[36px] leading-tight font-extrabold tracking-tight">Today's IPO market</h1>
-            <p className="mt-1 text-white/80 max-w-md">Live GMP, subscription and allotment status for every mainboard and SME IPO.</p>
+            <p className="mt-1 text-ink-2 max-w-md">Live GMP, subscription and allotment status for every mainboard and SME IPO.</p>
           </div>
-          <div className="[&>button]:bg-white/15 [&>button]:text-white"><LiveBadge /></div>
+          <LiveBadge />
         </div>
         <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-5 gap-2.5">
           <StatTile label="Open now" value={m.counts.open} icon="bolt" tone="bg-open text-on-brand" onClick={() => onBrowse("open")} />

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button, Chip, CompanyLogo, Icon, LineChart, LinkButton, StageChip, SubscriptionBars, Tabs, TypeChip, useToast
 } from "../../shared/ui/index.js";
@@ -8,6 +8,7 @@ import { useAllotment } from "../allotment/allotment.controller.jsx";
 import { QuickCheck } from "../allotment/QuickCheck.jsx";
 import { useAlerts } from "../alerts/alerts.controller.jsx";
 import { ipoId, useIpoDetail } from "./market.controller.jsx";
+import { marketService } from "./market.service.js";
 
 const BROKERS = [
   ["Zerodha", "https://kite.zerodha.com/"],
@@ -116,15 +117,35 @@ function Overview({ ipo }) {
   );
 }
 
+function useGmpHistory(ipo) {
+  const [history, setHistory] = useState(null);
+  useEffect(() => {
+    if (!ipo.gmpPath) return;
+    let live = true;
+    marketService.gmpHistory(ipo.gmpPath).then(h => live && setHistory(h)).catch(() => {});
+    return () => { live = false; };
+  }, [ipo.gmpPath]);
+  // Scraped day-wise history plus the board's own snapshots (fresher for today)
+  return useMemo(() => {
+    const byDate = new Map((history || []).map(p => [p.date, p.gmp]));
+    for (const p of ipo.gmpTrend || []) byDate.set(p.date, p.gmp);
+    return [...byDate.entries()].map(([d, gmp]) => ({ date: d, gmp })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [history, ipo.gmpTrend]);
+}
+
 function GmpTab({ ipo }) {
   const e = estimate(ipo);
-  const points = (ipo.gmpTrend || []).map(p => ({ value: p.gmp, label: date(p.date) }));
+  const series = useGmpHistory(ipo);
   if (!e) return <Card><p className="text-ink-3">No grey market premium reported for this IPO yet.</p></Card>;
   const tone = e.gmp > 0 ? "text-gain" : e.gmp < 0 ? "text-loss" : "text-ink-3";
   const lots = ipo.type === "SME" ? 2 : 1;
+  const price = issuePrice(ipo);
+  const points = series.map(p => ({ value: p.gmp, label: date(p.date) }));
+  const high = series.length ? Math.max(...series.map(p => p.gmp)) : null;
+  const low = series.length ? Math.min(...series.map(p => p.gmp)) : null;
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <Fact label="Current GMP" value={`${e.gmp > 0 ? "+" : ""}₹${num(e.gmp)}`} accent={tone} />
         <Fact label="Expected gain" value={`${e.pct > 0 ? "+" : ""}${e.pct.toFixed(2)}%`} accent={tone} />
         <Fact label="Est. listing price" value={rupees(e.price)} />
@@ -132,12 +153,49 @@ function GmpTab({ ipo }) {
       </div>
       <Card title="GMP trend" icon="trendUp">
         {points.length > 1 ? (
-          <LineChart points={points} format={v => `₹${v}`} className={tone} />
+          <>
+            <LineChart points={points} format={v => `₹${v}`} className={tone} />
+            <div className="mt-3 flex flex-wrap gap-2 text-[12.5px] font-semibold">
+              <span className="h-7 px-2.5 rounded-full bg-gain-soft text-gain grid place-items-center">High ₹{num(high)}</span>
+              <span className="h-7 px-2.5 rounded-full bg-loss-soft text-loss grid place-items-center">Low ₹{num(low)}</span>
+              <span className="h-7 px-2.5 rounded-full bg-raised text-ink-2 grid place-items-center">{series.length} days tracked</span>
+            </div>
+          </>
         ) : (
-          <p className="text-[14px] text-ink-3">The trend builds up day by day while Qasid tracks this IPO — check back tomorrow.</p>
+          <p className="text-[14px] text-ink-3">{ipo.gmpPath ? "Loading GMP history…" : "Only today's GMP is available for this IPO so far."}</p>
         )}
         {ipo.gmpUpdated && <p className="mt-3 text-[12.5px] text-ink-3">Last GMP update {ipo.gmpUpdated}</p>}
       </Card>
+      {series.length > 1 && (
+        <Card title="Day-wise GMP" icon="calendar">
+          <table className="w-full text-[14px]">
+            <thead>
+              <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
+                <th className="text-left font-semibold pb-2">Date</th>
+                <th className="text-right font-semibold pb-2">GMP</th>
+                <th className="text-right font-semibold pb-2">Est. listing</th>
+                <th className="text-right font-semibold pb-2">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...series].reverse().map((p, i, arr) => {
+                const prev = arr[i + 1];
+                const diff = prev ? p.gmp - prev.gmp : null;
+                return (
+                  <tr key={p.date} className="border-t border-line">
+                    <td className="py-2.5 font-semibold">{date(p.date, true)}</td>
+                    <td className={`py-2.5 text-right font-bold ${p.gmp > 0 ? "text-gain" : p.gmp < 0 ? "text-loss" : ""}`}>₹{num(p.gmp, 2)}</td>
+                    <td className="py-2.5 text-right">{price ? rupees(price + p.gmp) : "—"}</td>
+                    <td className={`py-2.5 text-right font-semibold ${diff > 0 ? "text-gain" : diff < 0 ? "text-loss" : "text-ink-3"}`}>
+                      {diff === null ? "—" : diff === 0 ? "0" : `${diff > 0 ? "▲" : "▼"} ${num(Math.abs(diff), 2)}`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
       <p className="flex gap-2 text-[12.5px] text-ink-3 px-1">
         <Icon name="info" className="size-4 shrink-0 mt-0.5" />
         GMP is an unofficial grey-market indicator and often changes before listing. It is not investment advice.
@@ -157,10 +215,10 @@ function SubscriptionTab({ ipo, loading }) {
   }
   return (
     <div className="space-y-4">
-      <div className="card p-5 hero-gradient text-white border-0">
-        <p className="text-white/75 text-[12px] font-semibold uppercase tracking-wide">Overall subscription</p>
+      <div className="card p-5 hero-gradient text-ink">
+        <p className="text-ink-3 text-[12px] font-semibold uppercase tracking-wide">Overall subscription</p>
         <p className="mt-1 text-[40px] leading-none font-extrabold">{sub.total ? `${Number(sub.total).toFixed(2)}x` : "—"}</p>
-        <p className="mt-2 text-white/80 text-[13px]">
+        <p className="mt-2 text-ink-2 text-[13px]">
           {ipo.applications ? `${num(ipo.applications)} applications · ` : ""}{sub.updatedAt ? `as of ${sub.updatedAt}` : "live"}
         </p>
       </div>
@@ -280,7 +338,7 @@ function DocsTab({ ipo, detail }) {
   );
 }
 
-export function IpoDetail({ ipo: base, onCheckAllotment }) {
+export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
   const { detail, loading } = useIpoDetail(base);
   const { findFor } = useAllotment();
   const { isWatched, toggleWatch } = useAlerts();
@@ -310,49 +368,52 @@ export function IpoDetail({ ipo: base, onCheckAllotment }) {
   };
 
   return (
-    <article>
-      <header className="hero-gradient text-white px-5 sm:px-7 pt-7 pb-6 rounded-b-[28px]">
-        <div className="flex items-start gap-4 pr-12">
-          <CompanyLogo name={ipo.name} src={ipo.logo} size={56} className="ring-2 ring-white/40" />
+    <article className="max-w-[920px] mx-auto">
+      <button onClick={onBack} className="mb-4 -ml-1 h-9 px-2 inline-flex items-center gap-1.5 rounded-xl text-[14px] font-semibold text-ink-2 hover:text-ink hover:bg-raised">
+        <Icon name="arrowRight" className="size-4 rotate-180" />Back
+      </button>
+      <header className="hero-gradient text-ink px-5 sm:px-8 pt-6 sm:pt-8 pb-6 rounded-[28px] ring-1 ring-brand/15">
+        <div className="flex items-start gap-4">
+          <CompanyLogo name={ipo.name} src={ipo.logo} size={64} className="ring-1 ring-line" />
           <div className="min-w-0">
-            <h2 className="text-[22px] leading-7 font-extrabold tracking-tight">{ipo.name}</h2>
+            <h1 className="text-[24px] sm:text-[30px] leading-tight font-extrabold tracking-tight">{ipo.name}</h1>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <StageChip status={ipo.status} />
               <TypeChip type={ipo.type} />
-              {ipo.symbol && <Chip className="bg-white/15! text-white!">{ipo.symbol}</Chip>}
+              {ipo.symbol && <Chip className="bg-surface! text-ink-2!">{ipo.symbol}</Chip>}
             </div>
           </div>
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
-            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">Price</p>
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">Price</p>
             <p className="font-bold text-[14px]">{priceBand(ipo)}</p>
           </div>
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
-            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">GMP</p>
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">GMP</p>
             <p className="font-bold text-[14px]">{e ? `${e.gmp >= 0 ? "+" : ""}₹${num(e.gmp)} (${e.pct.toFixed(1)}%)` : "—"}</p>
           </div>
-          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
-            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">Subscribed</p>
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">Subscribed</p>
             <p className="font-bold text-[14px]">{ipo.subscription?.total ? `${Number(ipo.subscription.total).toFixed(2)}x` : "—"}</p>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/90">
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-2">
             <Icon name="clock" className="size-4" />{countdown(ipo) || (ipo.listingDate ? `Listed ${date(ipo.listingDate, true)}` : "")}
           </span>
           <div className="ml-auto flex gap-2">
-            <button onClick={() => toggleWatch(ipo.name)} aria-pressed={watched} className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold ${watched ? "bg-white text-listed" : "bg-white/15 hover:bg-white/25"}`}>
+            <button onClick={() => toggleWatch(ipo.name)} aria-pressed={watched} className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold ${watched ? "bg-brand text-on-brand" : "bg-surface/85 hover:bg-surface"}`}>
               <Icon name="star" filled={watched} className="size-4" />{watched ? "Watching" : "Watch"}
             </button>
-            <button onClick={share} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold bg-white/15 hover:bg-white/25">
+            <button onClick={share} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold bg-surface/85 hover:bg-surface">
               <Icon name="share" className="size-4" />Share
             </button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 pt-5 pb-10">
+      <div className="pt-6 pb-4">
         <Tabs items={tabs} value={tab} onChange={setTab} size="sm" label="IPO sections" className="mb-5" />
 
         {tab === "overview" && <Overview ipo={ipo} />}

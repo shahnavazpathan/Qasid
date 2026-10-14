@@ -20,7 +20,7 @@ export function Sparkline({ values, width = 84, height = 28, className = "text-b
 // Labelled line chart for GMP history
 export function LineChart({ points, format = v => v, height = 160, className = "text-brand" }) {
   if (points.length < 2) return null;
-  const W = 600, H = height, P = { l: 8, r: 8, t: 18, b: 26 };
+  const W = 600, H = height, P = { l: 30, r: 30, t: 26, b: 26 };
   const vals = points.map(p => p.value);
   const min = Math.min(...vals), max = Math.max(...vals);
   const span = max - min || 1;

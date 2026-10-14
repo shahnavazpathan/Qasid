@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useHashRoute } from "../shared/hooks/useHashRoute.js";
-import { Icon, Sheet, ThemeToggle, ToastProvider } from "../shared/ui/index.js";
+import { Icon, SkeletonCards, ThemeToggle, ToastProvider } from "../shared/ui/index.js";
 import { PansProvider, PansView, usePans } from "../modules/pans/index.js";
 import { AllotmentProvider, AllotmentView, useAllotment } from "../modules/allotment/index.js";
 import { IpoDetail, ipoId, MarketProvider, MarketView, useMarket } from "../modules/market/index.js";
@@ -58,13 +58,15 @@ function Shell() {
   const market = useMarket();
   const allotment = useAllotment();
   const { pans } = usePans();
-  const lastMain = useRef("home");
+  const lastMain = useRef(null);
   if (route !== "ipo") lastMain.current = route;
-  const page = route === "ipo" ? lastMain.current : route;
+  // IPO pages live under the IPOs section of the nav
+  const page = route === "ipo" ? "ipos" : route;
 
   const openIpo = useCallback(ipo => go("ipo", ipoId(ipo)), [go]);
-  const closeIpo = useCallback(() => go(lastMain.current), [go]);
-  const sheetIpo = route === "ipo" && param ? market.findById(param) : null;
+  // Back returns to wherever the IPO was opened from (or the IPO list for a shared link)
+  const closeIpo = useCallback(() => { if (lastMain.current) history.back(); else go("ipos"); }, [go]);
+  const pageIpo = route === "ipo" && param ? market.findById(param) : null;
 
   const checkAllotment = useCallback(registrarIpo => {
     if (registrarIpo) allotment.select(registrarIpo);
@@ -75,8 +77,8 @@ function Shell() {
 
   // Deep link to an IPO that has since dropped off the board
   useEffect(() => {
-    if (route === "ipo" && market.board && !sheetIpo) go("ipos");
-  }, [route, market.board, sheetIpo, go]);
+    if (route === "ipo" && market.board && !pageIpo) go("ipos");
+  }, [route, market.board, pageIpo, go]);
 
   return (
     <AlertsProvider onOpenAllotment={() => go("allotment")}>
@@ -107,7 +109,10 @@ function Shell() {
 
         <main className="mx-auto max-w-[1200px] px-4 sm:px-6 pt-6 sm:pt-8">
           {page === "home" && <HomeView onOpenIpo={openIpo} onCheckAllotment={checkAllotment} onBrowse={browse} />}
-          {page === "ipos" && <MarketView onOpenIpo={openIpo} onCheckAllotment={checkAllotment} />}
+          {route === "ipos" && <MarketView onOpenIpo={openIpo} onCheckAllotment={checkAllotment} />}
+          {route === "ipo" && (pageIpo
+            ? <IpoDetail key={ipoId(pageIpo)} ipo={pageIpo} onBack={closeIpo} onCheckAllotment={checkAllotment} />
+            : <SkeletonCards count={3} />)}
           {page === "allotment" && <AllotmentView />}
           {page === "pans" && <PansView />}
           <Footer />
@@ -129,9 +134,6 @@ function Shell() {
           </div>
         </nav>
 
-        <Sheet open={!!sheetIpo} onClose={closeIpo} label={sheetIpo?.name} wide>
-          {sheetIpo && <IpoDetail key={ipoId(sheetIpo)} ipo={sheetIpo} onCheckAllotment={a => { if (a) allotment.select(a); go("allotment"); }} />}
-        </Sheet>
       </div>
     </AlertsProvider>
   );
