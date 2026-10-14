@@ -58,14 +58,29 @@ export function PansProvider({ children }) {
     setStored(prev => prev.map(p => found.has(p.pan) ? { ...p, name: found.get(p.pan) } : p));
   }, [setStored]);
 
+  // Per-PAN record of past outcomes: { PAN: [{ ipo, status, shares, at }] }
+  const [history, setHistory] = useStoredState("panHistory", {});
+  const recordHistory = useCallback((ipoName, results) => {
+    setHistory(prev => {
+      const next = { ...prev };
+      for (const r of results) {
+        if (!r.success && r.error !== "You have not applied for this IPO.") continue;
+        const status = r.success ? (Number(r.data.Allotted) > 0 ? "allotted" : "not-allotted") : "not-applied";
+        const entry = { ipo: ipoName, status, shares: r.success ? Number(r.data.Allotted) || 0 : 0, at: Date.now() };
+        next[r.pan] = [entry, ...(next[r.pan] || []).filter(e => e.ipo !== ipoName)].slice(0, 30);
+      }
+      return next;
+    });
+  }, [setHistory]);
+
   const labelFor = useCallback(pan => {
     const p = pans.find(x => x.pan === pan);
     return p ? [p.nickname, p.name].filter(Boolean).join(" · ") : "";
   }, [pans]);
 
   const value = useMemo(
-    () => ({ pans, selected, add, remove, toggle, selectAll, learnNames, labelFor }),
-    [pans, selected, add, remove, toggle, selectAll, learnNames, labelFor]
+    () => ({ pans, selected, add, remove, toggle, selectAll, learnNames, labelFor, history, recordHistory }),
+    [pans, selected, add, remove, toggle, selectAll, learnNames, labelFor, history, recordHistory]
   );
   return <PansContext.Provider value={value}>{children}</PansContext.Provider>;
 }

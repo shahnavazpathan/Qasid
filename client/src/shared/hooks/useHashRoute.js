@@ -1,17 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 
-const current = (routes, fallback) => {
-  const r = window.location.hash.replace(/^#\/?/, "");
-  return routes.includes(r) ? r : fallback;
+// "#/ipos" -> { route: "ipos", param: null }, "#/ipo/FUSIONCX" -> { route: "ipo", param: "FUSIONCX" }
+const parse = (routes, fallback) => {
+  const [route, ...rest] = window.location.hash.replace(/^#\/?/, "").split("/");
+  return routes.includes(route) ? { route, param: rest.length ? decodeURIComponent(rest.join("/")) : null } : { route: fallback, param: null };
 };
 
 export function useHashRoute(routes, fallback) {
-  const [route, setRoute] = useState(() => current(routes, fallback));
+  const [state, setState] = useState(() => parse(routes, fallback));
   useEffect(() => {
-    const onHash = () => { setRoute(current(routes, fallback)); window.scrollTo({ top: 0 }); };
+    const onHash = () => {
+      const next = parse(routes, fallback);
+      setState(prev => {
+        if (prev.route !== next.route) window.scrollTo({ top: 0 });
+        return next;
+      });
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, [routes, fallback]);
-  const go = useCallback(r => { window.location.hash = `/${r}`; }, []);
-  return [route, go];
+  const go = useCallback((route, param) => {
+    window.location.hash = `/${route}${param ? `/${encodeURIComponent(param)}` : ""}`;
+  }, []);
+  return [state.route, go, state.param];
 }

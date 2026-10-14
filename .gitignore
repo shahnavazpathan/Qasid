@@ -21,3 +21,5 @@ Thumbs.db
 # Editor directories and files
 .vscode/
 .idea/
+# Runtime data (GMP/subscription history)
+data/

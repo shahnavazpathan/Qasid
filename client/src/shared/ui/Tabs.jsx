@@ -1,8 +1,18 @@
-// Text tabs; selection shown with ink weight and an underline, never color.
-export function Tabs({ items, value, onChange, label, size = "md" }) {
-  const text = size === "sm" ? "text-[13px]" : "text-[15px]";
+// Pill tabs. `tone` per item tints the active pill with that stage's colour.
+const ACTIVE = {
+  brand: "bg-brand text-on-brand",
+  open: "bg-open text-on-brand",
+  upcoming: "bg-upcoming text-on-brand",
+  closed: "bg-closed text-on-brand",
+  listed: "bg-listed text-on-brand",
+  sme: "bg-sme text-on-brand",
+  ink: "bg-ink text-canvas"
+};
+
+export function Tabs({ items, value, onChange, label, size = "md", className = "" }) {
+  const sizing = size === "sm" ? "h-8 px-3 text-[12.5px]" : "h-10 px-4 text-[14px]";
   return (
-    <div role="tablist" aria-label={label} className="flex gap-6 overflow-x-auto [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
+    <div role="tablist" aria-label={label} className={`flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 ${className}`}>
       {items.map(item => {
         const active = item.value === value;
         return (
@@ -11,11 +21,17 @@ export function Tabs({ items, value, onChange, label, size = "md" }) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(item.value)}
-            className={`${text} relative shrink-0 py-2 whitespace-nowrap transition-colors ${active ? "text-ink font-medium" : "text-ink-3 hover:text-ink-2"}`}
+            className={`${sizing} shrink-0 inline-flex items-center gap-2 rounded-full font-semibold whitespace-nowrap transition-all ${
+              active ? `${ACTIVE[item.tone || "ink"]} shadow-card` : "bg-surface text-ink-2 ring-1 ring-line hover:text-ink hover:ring-ink-3"
+            }`}
           >
+            {item.icon}
             {item.label}
-            {item.count !== undefined && <span className="ml-1.5 text-ink-3 font-normal">{item.count}</span>}
-            <span className={`absolute left-0 right-0 -bottom-px h-px bg-ink transition-opacity ${active ? "opacity-100" : "opacity-0"}`} />
+            {item.count !== undefined && (
+              <span className={`min-w-5 h-5 px-1.5 grid place-items-center rounded-full text-[11px] ${active ? "bg-white/25" : "bg-raised"}`}>
+                {item.count}
+              </span>
+            )}
           </button>
         );
       })}

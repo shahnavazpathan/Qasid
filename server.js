@@ -25,7 +25,9 @@ const ALLOWED_WEB_DOMAINS = [
   "https://ipo.thevellora.co.in",
   "https://qasid-x637.onrender.com",
   "http://localhost:3000",
-  "http://localhost:8081"
+  "http://localhost:8081",
+  // Extra dev/preview origins, comma-separated (e.g. EXTRA_ORIGINS=http://localhost:3100)
+  ...(process.env.EXTRA_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean)
 ];
 
 app.use((req, res, next) => {

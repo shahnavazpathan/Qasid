@@ -1,137 +1,382 @@
-import { Button } from "../../shared/ui/index.js";
-import { date, gmp, issueSize, num, priceBand, rupees, signed, times } from "../../shared/lib/format.js";
-import { useAllotment } from "../allotment/index.js";
-import { useIpoDetail } from "./market.controller.jsx";
+import { useMemo, useState } from "react";
+import {
+  Button, Chip, CompanyLogo, Icon, LineChart, LinkButton, StageChip, SubscriptionBars, Tabs, TypeChip, useToast
+} from "../../shared/ui/index.js";
+import { date, issueSize, num, priceBand, rupees } from "../../shared/lib/format.js";
+import { countdown, estimate, issuePrice, lotTable, minInvestment, shareText, todayIso } from "../../shared/lib/ipo.js";
+import { useAllotment } from "../allotment/allotment.controller.jsx";
+import { QuickCheck } from "../allotment/QuickCheck.jsx";
+import { useAlerts } from "../alerts/alerts.controller.jsx";
+import { ipoId, useIpoDetail } from "./market.controller.jsx";
 
-function Fact({ label, children }) {
-  return (
-    <div>
-      <dt className="label">{label}</dt>
-      <dd className="mt-1 text-[15px]">{children}</dd>
-    </div>
-  );
-}
+const BROKERS = [
+  ["Zerodha", "https://kite.zerodha.com/"],
+  ["Groww", "https://groww.in/ipo"],
+  ["Upstox", "https://upstox.com/ipo/"],
+  ["Angel One", "https://www.angelone.in/ipo"]
+];
 
-function Section({ title, children }) {
+function Card({ title, icon, children, className = "" }) {
   return (
-    <section className="mt-12">
-      <h3 className="label mb-4">{title}</h3>
+    <section className={`card p-5 ${className}`}>
+      {title && (
+        <h3 className="flex items-center gap-2 font-bold text-[15px] mb-4">
+          {icon && <span className="size-7 grid place-items-center rounded-lg bg-brand-soft text-brand"><Icon name={icon} className="size-4" /></span>}
+          {title}
+        </h3>
+      )}
       {children}
     </section>
   );
 }
 
+function Fact({ label, value, accent }) {
+  return (
+    <div className="rounded-2xl bg-raised/70 px-3.5 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className={`mt-0.5 font-bold text-[15px] ${accent || ""}`}>{value}</p>
+    </div>
+  );
+}
+
 function Timeline({ ipo }) {
   const steps = [
-    ["Opens", ipo.openDate], ["Closes", ipo.closeDate], ["Allotment", ipo.allotmentDate],
-    ["Refunds", ipo.refundDate], ["Demat credit", ipo.creditDate], ["Listing", ipo.listingDate]
+    ["Opens", ipo.openDate, "calendar"], ["Closes", ipo.closeDate, "clock"], ["Allotment", ipo.allotmentDate, "check"],
+    ["Refunds", ipo.refundDate, "refresh"], ["Demat credit", ipo.creditDate, "layers"], ["Listing", ipo.listingDate, "trendUp"]
   ].filter(([, d]) => d);
   if (!steps.length) return null;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const next = steps.findIndex(([, d]) => new Date(d) >= today);
+  const today = todayIso();
+  const nextIdx = steps.findIndex(([, d]) => d >= today);
 
   return (
-    <Section title="Timeline">
-      <ol>
-        {steps.map(([label, d], i) => {
-          const past = next === -1 || i < next;
-          const current = i === next;
+    <Card title="Timeline" icon="calendar">
+      <ol className="relative">
+        {steps.map(([label, d, icon], i) => {
+          const done = nextIdx === -1 || i < nextIdx;
+          const current = i === nextIdx;
           return (
-            <li key={label} className={`flex justify-between py-1.5 ${past ? "text-ink-3" : current ? "text-ink font-medium" : "text-ink-2"}`}>
-              <span>{current && <span aria-hidden="true" className="inline-block size-1.5 rounded-full bg-ink mr-2 align-middle" />}{label}</span>
-              <span>{date(d, true)}</span>
+            <li key={label} className="relative flex items-center gap-3 pb-4 last:pb-0">
+              {i < steps.length - 1 && <span className={`absolute left-[15px] top-8 bottom-0 w-0.5 ${done ? "bg-open" : "bg-line"}`} />}
+              <span className={`relative z-[1] size-8 grid place-items-center rounded-full ${done ? "bg-open text-on-brand" : current ? "brand-gradient text-white ring-4 ring-brand/20" : "bg-raised text-ink-3"}`}>
+                <Icon name={done ? "check" : icon} className="size-4" />
+              </span>
+              <span className={`flex-1 font-semibold ${current ? "text-brand" : done ? "text-ink-2" : "text-ink"}`}>{label}</span>
+              <span className={`text-[14px] font-bold ${current ? "text-brand" : "text-ink-2"}`}>{date(d, true)}</span>
             </li>
           );
         })}
       </ol>
-    </Section>
+    </Card>
+  );
+}
+
+function Overview({ ipo }) {
+  const fresh = ipo.freshIssueCr || 0, ofs = ipo.ofsCr || 0;
+  const total = fresh + ofs;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2.5">
+        <Fact label="Price band" value={priceBand(ipo)} />
+        <Fact label="Lot size" value={ipo.lotSize ? `${num(ipo.lotSize)} shares` : "—"} />
+        <Fact label="Min. investment" value={minInvestment(ipo) ? rupees(minInvestment(ipo)) : "—"} />
+        <Fact label="Issue size" value={issueSize(ipo)} />
+        {ipo.faceValue ? <Fact label="Face value" value={`₹${ipo.faceValue}`} /> : null}
+        {ipo.peRatio ? <Fact label="P/E" value={num(ipo.peRatio, 2)} /> : null}
+        {ipo.exchange ? <Fact label="Listing at" value={ipo.exchange} /> : null}
+        {ipo.applications ? <Fact label="Applications" value={num(ipo.applications)} accent="text-brand" /> : null}
+        {ipo.listingPrice ? <Fact label="Listing price" value={rupees(ipo.listingPrice, 2)} /> : null}
+        {ipo.listingGain !== null && ipo.listingGain !== undefined ? (
+          <Fact label="Listing gain" value={`${ipo.listingGain > 0 ? "+" : ""}${Number(ipo.listingGain).toFixed(2)}%`} accent={ipo.listingGain >= 0 ? "text-gain" : "text-loss"} />
+        ) : null}
+      </div>
+
+      <Timeline ipo={ipo} />
+
+      {total > 0 && (
+        <Card title="Issue structure" icon="layers">
+          <div className="flex h-3 rounded-full overflow-hidden bg-raised">
+            {fresh > 0 && <div className="bg-brand animate-grow" style={{ width: `${(fresh / total) * 100}%` }} />}
+            {ofs > 0 && <div className="bg-sme animate-grow" style={{ width: `${(ofs / total) * 100}%` }} />}
+          </div>
+          <div className="mt-3 flex justify-between text-[13.5px]">
+            <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-brand" />Fresh issue <b>₹{num(fresh, 2)} Cr</b></span>
+            <span className="flex items-center gap-2"><i className="size-2.5 rounded-full bg-sme" />Offer for sale <b>₹{num(ofs, 2)} Cr</b></span>
+          </div>
+          <p className="mt-3 text-[12.5px] text-ink-3">Fresh issue money goes to the company; offer-for-sale money goes to selling shareholders.</p>
+        </Card>
+      )}
+
+      {(ipo.registrarName || ipo.leadManagers) && (
+        <Card title="Intermediaries" icon="shield">
+          {ipo.registrarName && <p className="text-[14px]"><span className="text-ink-3">Registrar · </span><b>{ipo.registrarName}</b></p>}
+          {ipo.leadManagers && <p className="mt-2 text-[14px]"><span className="text-ink-3">Lead managers · </span>{ipo.leadManagers}</p>}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function GmpTab({ ipo }) {
+  const e = estimate(ipo);
+  const points = (ipo.gmpTrend || []).map(p => ({ value: p.gmp, label: date(p.date) }));
+  if (!e) return <Card><p className="text-ink-3">No grey market premium reported for this IPO yet.</p></Card>;
+  const tone = e.gmp > 0 ? "text-gain" : e.gmp < 0 ? "text-loss" : "text-ink-3";
+  const lots = ipo.type === "SME" ? 2 : 1;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2.5">
+        <Fact label="Current GMP" value={`${e.gmp > 0 ? "+" : ""}₹${num(e.gmp)}`} accent={tone} />
+        <Fact label="Expected gain" value={`${e.pct > 0 ? "+" : ""}${e.pct.toFixed(2)}%`} accent={tone} />
+        <Fact label="Est. listing price" value={rupees(e.price)} />
+        <Fact label={`Est. profit (${lots} lot${lots > 1 ? "s" : ""})`} value={e.perLot !== null ? `${e.perLot >= 0 ? "+" : "−"}₹${num(Math.abs(e.perLot * lots))}` : "—"} accent={tone} />
+      </div>
+      <Card title="GMP trend" icon="trendUp">
+        {points.length > 1 ? (
+          <LineChart points={points} format={v => `₹${v}`} className={tone} />
+        ) : (
+          <p className="text-[14px] text-ink-3">The trend builds up day by day while Qasid tracks this IPO — check back tomorrow.</p>
+        )}
+        {ipo.gmpUpdated && <p className="mt-3 text-[12.5px] text-ink-3">Last GMP update {ipo.gmpUpdated}</p>}
+      </Card>
+      <p className="flex gap-2 text-[12.5px] text-ink-3 px-1">
+        <Icon name="info" className="size-4 shrink-0 mt-0.5" />
+        GMP is an unofficial grey-market indicator and often changes before listing. It is not investment advice.
+      </p>
+    </div>
+  );
+}
+
+function SubscriptionTab({ ipo, loading }) {
+  const sub = ipo.subscription || {};
+  const categories = sub.categories || [];
+  const days = ipo.subscriptionByDay || [];
+  const dayCols = ["QIB", "NII", "Retail"].filter(c => days.some(d => d[c] !== undefined));
+
+  if (!categories.length && !sub.total) {
+    return <Card><p className="text-ink-3">{loading ? "Loading live subscription…" : ipo.status === "upcoming" ? "Bidding hasn't started yet." : "Subscription data isn't available."}</p></Card>;
+  }
+  return (
+    <div className="space-y-4">
+      <div className="card p-5 hero-gradient text-white border-0">
+        <p className="text-white/75 text-[12px] font-semibold uppercase tracking-wide">Overall subscription</p>
+        <p className="mt-1 text-[40px] leading-none font-extrabold">{sub.total ? `${Number(sub.total).toFixed(2)}x` : "—"}</p>
+        <p className="mt-2 text-white/80 text-[13px]">
+          {ipo.applications ? `${num(ipo.applications)} applications · ` : ""}{sub.updatedAt ? `as of ${sub.updatedAt}` : "live"}
+        </p>
+      </div>
+      {categories.length > 0 && (
+        <Card title="By category" icon="chart">
+          <SubscriptionBars categories={categories} />
+        </Card>
+      )}
+      {days.length > 0 && (
+        <Card title="Day-wise" icon="calendar">
+          <table className="w-full text-[14px]">
+            <thead>
+              <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
+                <th className="text-left font-semibold pb-2">Day</th>
+                {dayCols.map(c => <th key={c} className="text-right font-semibold pb-2">{c}</th>)}
+                <th className="text-right font-semibold pb-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((d, i) => (
+                <tr key={d.date} className="border-t border-line">
+                  <td className="py-2.5 font-semibold">Day {i + 1} <span className="text-ink-3 font-normal">· {date(d.date)}</span></td>
+                  {dayCols.map(c => <td key={c} className="py-2.5 text-right">{d[c] !== undefined ? `${Number(d[c]).toFixed(2)}x` : "—"}</td>)}
+                  <td className="py-2.5 text-right font-bold text-brand">{Number(d.total).toFixed(2)}x</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function CalculatorTab({ ipo }) {
+  const rows = lotTable(ipo);
+  const price = issuePrice(ipo);
+  const e = estimate(ipo);
+  const [lots, setLots] = useState(ipo.type === "SME" ? 2 : 1);
+  if (!rows.length) return <Card><p className="text-ink-3">Price and lot size aren't announced yet.</p></Card>;
+  const shares = lots * ipo.lotSize;
+  return (
+    <div className="space-y-4">
+      <Card title="Application size" icon="calculator">
+        <table className="w-full text-[14px]">
+          <thead>
+            <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
+              <th className="text-left font-semibold pb-2">Category</th>
+              <th className="text-right font-semibold pb-2">Lots</th>
+              <th className="text-right font-semibold pb-2">Shares</th>
+              <th className="text-right font-semibold pb-2">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.category} className="border-t border-line">
+                <td className="py-2.5 font-semibold">{r.category}</td>
+                <td className="py-2.5 text-right">{r.lots}</td>
+                <td className="py-2.5 text-right">{num(r.shares)}</td>
+                <td className="py-2.5 text-right font-bold">₹{num(r.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      <Card title="Your application" icon="sparkles">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setLots(l => Math.max(1, l - 1))} className="size-11 rounded-xl bg-raised text-[20px] font-bold" aria-label="Fewer lots">−</button>
+          <div className="flex-1 text-center">
+            <p className="text-[28px] font-extrabold leading-none">{lots}</p>
+            <p className="text-[12px] text-ink-3 mt-1">lot{lots > 1 ? "s" : ""} · {num(shares)} shares</p>
+          </div>
+          <button onClick={() => setLots(l => l + 1)} className="size-11 rounded-xl bg-raised text-[20px] font-bold" aria-label="More lots">+</button>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <Fact label="You pay (upper band)" value={`₹${num(shares * price)}`} />
+          <Fact
+            label="Est. profit at GMP"
+            value={e ? `${e.gmp >= 0 ? "+" : "−"}₹${num(Math.abs(e.gmp * shares))}` : "—"}
+            accent={e ? (e.gmp >= 0 ? "text-gain" : "text-loss") : ""}
+          />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function DocsTab({ ipo, detail }) {
+  const docs = [...(detail?.documents || []), ...(ipo.documents || [])].filter((d, i, arr) => arr.findIndex(x => x.url === d.url) === i);
+  const links = [
+    ipo.sourceUrl && ["Chittorgarh page", ipo.sourceUrl],
+    ipo.symbol && ["NSE issue page", `https://www.nseindia.com/market-data/issue-information?symbol=${ipo.symbol}&series=${ipo.type === "SME" ? "SME" : "EQ"}&type=Active`]
+  ].filter(Boolean);
+  return (
+    <div className="space-y-4">
+      <Card title="Offer documents" icon="file">
+        {docs.length ? (
+          <ul className="space-y-2">
+            {docs.map(d => (
+              <li key={d.url}>
+                <a href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-3 bg-raised/70 hover:bg-raised font-semibold text-[14px]">
+                  <Icon name="file" className="size-5 text-brand" />
+                  <span className="flex-1">{d.label}</span>
+                  <Icon name="arrowUpRight" className="size-4 text-ink-3" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="text-ink-3 text-[14px]">No documents published yet.</p>}
+      </Card>
+      {links.length > 0 && (
+        <Card title="More on this IPO" icon="arrowUpRight">
+          <div className="flex flex-wrap gap-2">{links.map(([label, url]) => <LinkButton key={url} href={url}>{label} <Icon name="arrowUpRight" className="size-3.5" /></LinkButton>)}</div>
+        </Card>
+      )}
+    </div>
   );
 }
 
 export function IpoDetail({ ipo: base, onCheckAllotment }) {
   const { detail, loading } = useIpoDetail(base);
   const { findFor } = useAllotment();
-  const ipo = { ...base, ...(detail || {}) };
+  const { isWatched, toggleWatch } = useAlerts();
+  const toast = useToast();
+  const ipo = useMemo(() => ({ ...base, ...(detail || {}), subscription: detail?.subscription || base.subscription }), [base, detail]);
   const allotment = findFor(ipo.name);
-  const g = gmp(ipo);
-  const sub = ipo.subscription || {};
-  const categories = (sub.categories || []).filter(c => c.category !== "Total" && c.times !== null);
-  const docs = [...(detail?.documents || []), ...(base.documents || [])]
-    .filter((d, i, arr) => arr.findIndex(x => x.url === d.url) === i);
+  const [tab, setTab] = useState(allotment ? "allotment" : "overview");
+  const watched = isWatched(ipo.name);
+  const e = estimate(ipo);
 
-  const meta = [ipo.type === "SME" ? "SME" : "Mainboard", ipo.exchange, ipo.symbol].filter(Boolean).join(" · ");
+  const tabs = [
+    { value: "overview", label: "Overview" },
+    allotment && { value: "allotment", label: "Allotment", tone: "open" },
+    { value: "gmp", label: "GMP", tone: "brand" },
+    { value: "subscription", label: "Subscription", tone: "brand" },
+    { value: "calc", label: "Calculator", tone: "brand" },
+    { value: "docs", label: "Documents", tone: "brand" }
+  ].filter(Boolean).map(t => ({ tone: "brand", ...t }));
+
+  const share = async () => {
+    const url = `${location.origin}${location.pathname}#/ipo/${encodeURIComponent(ipoId(ipo))}`;
+    const text = shareText(ipo);
+    try {
+      if (navigator.share) await navigator.share({ title: `${ipo.name} IPO`, text, url });
+      else { await navigator.clipboard.writeText(`${text}\n${url}`); toast("Link copied", null, "success"); }
+    } catch {}
+  };
 
   return (
     <article>
-      <p className="label">{meta}</p>
-      <h2 className="mt-2 text-[28px] leading-9 font-medium tracking-tight">{ipo.name}</h2>
-      {ipo.industry && <p className="mt-2 text-ink-2">{ipo.industry}</p>}
+      <header className="hero-gradient text-white px-5 sm:px-7 pt-7 pb-6 rounded-b-[28px]">
+        <div className="flex items-start gap-4 pr-12">
+          <CompanyLogo name={ipo.name} src={ipo.logo} size={56} className="ring-2 ring-white/40" />
+          <div className="min-w-0">
+            <h2 className="text-[22px] leading-7 font-extrabold tracking-tight">{ipo.name}</h2>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <StageChip status={ipo.status} />
+              <TypeChip type={ipo.type} />
+              {ipo.symbol && <Chip className="bg-white/15! text-white!">{ipo.symbol}</Chip>}
+            </div>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">Price</p>
+            <p className="font-bold text-[14px]">{priceBand(ipo)}</p>
+          </div>
+          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">GMP</p>
+            <p className="font-bold text-[14px]">{e ? `${e.gmp >= 0 ? "+" : ""}₹${num(e.gmp)} (${e.pct.toFixed(1)}%)` : "—"}</p>
+          </div>
+          <div className="rounded-2xl bg-white/12 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-white/70 font-semibold">Subscribed</p>
+            <p className="font-bold text-[14px]">{ipo.subscription?.total ? `${Number(ipo.subscription.total).toFixed(2)}x` : "—"}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/90">
+            <Icon name="clock" className="size-4" />{countdown(ipo) || (ipo.listingDate ? `Listed ${date(ipo.listingDate, true)}` : "")}
+          </span>
+          <div className="ml-auto flex gap-2">
+            <button onClick={() => toggleWatch(ipo.name)} aria-pressed={watched} className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold ${watched ? "bg-white text-listed" : "bg-white/15 hover:bg-white/25"}`}>
+              <Icon name="star" filled={watched} className="size-4" />{watched ? "Watching" : "Watch"}
+            </button>
+            <button onClick={share} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold bg-white/15 hover:bg-white/25">
+              <Icon name="share" className="size-4" />Share
+            </button>
+          </div>
+        </div>
+      </header>
 
-      {allotment && (
-        <Button variant="primary" className="mt-8 w-full" onClick={() => onCheckAllotment(allotment)}>
-          Check allotment
-        </Button>
-      )}
+      <div className="px-4 sm:px-6 pt-5 pb-10">
+        <Tabs items={tabs} value={tab} onChange={setTab} size="sm" label="IPO sections" className="mb-5" />
 
-      <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6">
-        <Fact label="Price band">{priceBand(ipo)}</Fact>
-        <Fact label="Lot">{ipo.lotSize ? `${num(ipo.lotSize)} shares` : "—"}</Fact>
-        <Fact label="Min. investment">{ipo.lotSize && ipo.priceMax ? rupees(ipo.lotSize * ipo.priceMax) : "—"}</Fact>
-        <Fact label="Issue size">{issueSize(ipo)}</Fact>
-        <Fact label="GMP">{g?.text ?? "—"}</Fact>
-        <Fact label="Subscribed">{times(sub.total)}</Fact>
-        {ipo.listingPrice && <Fact label="Listing price">{rupees(ipo.listingPrice, 2)}</Fact>}
-        {ipo.listingGain !== null && ipo.listingGain !== undefined && <Fact label="Listing gain">{signed(ipo.listingGain, "%")}</Fact>}
-        {ipo.currentPrice && <Fact label="Current price">{rupees(ipo.currentPrice, 2)}</Fact>}
-        {ipo.registrarName && <Fact label="Registrar">{ipo.registrarName}</Fact>}
-      </dl>
-      {ipo.leadManagers && (
-        <dl className="mt-6"><Fact label="Lead managers">{ipo.leadManagers}</Fact></dl>
-      )}
+        {tab === "overview" && <Overview ipo={ipo} />}
+        {tab === "allotment" && allotment && <QuickCheck ipo={allotment} onOpenFull={() => onCheckAllotment(allotment)} />}
+        {tab === "gmp" && <GmpTab ipo={ipo} />}
+        {tab === "subscription" && <SubscriptionTab ipo={ipo} loading={loading} />}
+        {tab === "calc" && <CalculatorTab ipo={ipo} />}
+        {tab === "docs" && <DocsTab ipo={ipo} detail={detail} />}
 
-      <Timeline ipo={ipo} />
-
-      {(categories.length > 0 || loading) && (
-        <Section title="Subscription">
-          {loading && !categories.length ? (
-            <div className="space-y-3 animate-pulse">{[0, 1, 2].map(i => <div key={i} className="h-4 rounded bg-raised" />)}</div>
-          ) : (
-            <>
-              <table className="w-full text-[15px]">
-                <tbody>
-                  {categories.map(c => (
-                    <tr key={c.category}>
-                      <td className="py-1.5 text-ink-2">{c.category}</td>
-                      <td className="py-1.5 text-right">{times(c.times)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {sub.updatedAt && <p className="mt-3 text-[13px] text-ink-3">As of {sub.updatedAt}</p>}
-            </>
-          )}
-        </Section>
-      )}
-
-      {docs.length > 0 && (
-        <Section title="Documents">
-          <ul className="space-y-2">
-            {docs.map(d => (
-              <li key={d.url}>
-                <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-ink-2 hover:text-ink underline decoration-line underline-offset-4">
-                  {d.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {ipo.about && (
-        <Section title="About">
-          <p className="text-ink-2 leading-relaxed">{ipo.about}</p>
-        </Section>
-      )}
+        {(ipo.status === "open" || ipo.status === "upcoming") && (
+          <div className="mt-5 card p-5">
+            <p className="font-bold text-[15px]">Apply through your broker</p>
+            <p className="text-[13px] text-ink-3 mt-0.5">UPI mandate via ASBA · bids close {ipo.closeDate ? date(ipo.closeDate, true) : "soon"}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {BROKERS.map(([name, url]) => <LinkButton key={name} href={url}>{name} <Icon name="arrowUpRight" className="size-3.5" /></LinkButton>)}
+            </div>
+          </div>
+        )}
+        {!allotment && ipo.status !== "upcoming" && ipo.status !== "open" && (
+          <Button variant="soft" className="mt-4 w-full" onClick={() => onCheckAllotment(null)}>
+            <Icon name="check" className="size-4.5" />Go to allotment checker
+          </Button>
+        )}
+      </div>
     </article>
   );
 }

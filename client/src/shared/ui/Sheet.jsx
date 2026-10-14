@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
+import { Icon } from "./Icon.jsx";
 
-export function Sheet({ open, onClose, label, children }) {
+export function Sheet({ open, onClose, label, children, wide = false }) {
   const panel = useRef(null);
 
   useEffect(() => {
@@ -20,25 +21,23 @@ export function Sheet({ open, onClose, label, children }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-ink/25 animate-fade" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0C0A09]/55 backdrop-blur-[2px] animate-fade" onClick={onClose} />
       <div
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={label}
         tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 top-12 sm:top-0 sm:left-auto sm:w-[480px] bg-canvas rounded-t-2xl sm:rounded-none overflow-y-auto outline-none animate-rise sm:animate-slide"
+        className={`absolute inset-x-0 bottom-0 top-10 sm:top-3 sm:bottom-3 sm:right-3 sm:left-auto ${wide ? "sm:w-[640px]" : "sm:w-[520px]"} bg-canvas rounded-t-[28px] sm:rounded-[28px] overflow-y-auto outline-none shadow-pop animate-rise sm:animate-slide`}
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          className="sticky top-0 float-right m-3 size-10 grid place-items-center rounded-full text-ink-2 hover:text-ink hover:bg-raised"
+          className="sticky top-3 z-10 float-right mr-3 size-10 grid place-items-center rounded-full bg-surface/90 backdrop-blur text-ink-2 hover:text-ink shadow-card"
         >
-          <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
-            <path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <Icon name="close" className="size-4" />
         </button>
-        <div className="px-6 sm:px-10 pt-10 pb-16">{children}</div>
+        {children}
       </div>
     </div>
   );

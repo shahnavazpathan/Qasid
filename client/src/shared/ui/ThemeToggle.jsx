@@ -1,19 +1,21 @@
+import { useState } from "react";
 import { write } from "../lib/storage.js";
+import { Icon } from "./Icon.jsx";
+
+const currentTheme = () =>
+  document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 
 export function ThemeToggle() {
+  const [theme, setTheme] = useState(currentTheme);
   const toggle = () => {
-    const root = document.documentElement;
-    const now = root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    const next = now === "dark" ? "light" : "dark";
-    root.dataset.theme = next;
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
     write("theme", next);
+    setTheme(next);
   };
   return (
-    <button onClick={toggle} aria-label="Toggle theme" className="size-9 grid place-items-center rounded-full text-ink-3 hover:text-ink hover:bg-raised">
-      <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
-        <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor" />
-      </svg>
+    <button onClick={toggle} aria-label="Toggle theme" className="size-10 grid place-items-center rounded-xl text-ink-2 hover:text-ink hover:bg-raised">
+      <Icon name={theme === "dark" ? "sun" : "moon"} className="size-5" />
     </button>
   );
 }
