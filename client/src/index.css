@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/* Palette: warm neutrals + one accent (burnt sienna), reserved for primary actions. */
+:root {
+  --canvas: #F6F4EF;
+  --raised: #EDEAE3;
+  --line: #E0DCD3;
+  --ink: #1C1B19;
+  --ink-2: #5C5852;
+  --ink-3: #77726A;
+  --accent: #A65A3A;
+  --accent-hover: #8E4B2F;
+  --on-accent: #FBF8F3;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #151413;
+    --raised: #1F1E1C;
+    --line: #2D2B28;
+    --ink: #ECE8E1;
+    --ink-2: #ABA69D;
+    --ink-3: #868179;
+    --accent: #C8754F;
+    --accent-hover: #D88A65;
+    --on-accent: #151413;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: #151413;
+  --raised: #1F1E1C;
+  --line: #2D2B28;
+  --ink: #ECE8E1;
+  --ink-2: #ABA69D;
+  --ink-3: #868179;
+  --accent: #C8754F;
+  --accent-hover: #D88A65;
+  --on-accent: #151413;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: "tnum" 1;
+  }
+  ::selection { background: var(--ink); color: var(--canvas); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+  input::-webkit-search-cancel-button { display: none; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+}
+
+@utility label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@utility animate-fade { animation: fade-in 160ms ease-out both; }
+@utility animate-slide { animation: slide-in 200ms cubic-bezier(.2,.7,.3,1) both; }
+@utility animate-rise { animation: rise 200ms cubic-bezier(.2,.7,.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

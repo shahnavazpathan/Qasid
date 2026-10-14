@@ -3,460 +3,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IPO Allotment Checker</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 20px 15px 90px 15px;
-      background: #f4f6f8;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #111827;
-    }
-    .container { max-width: 600px; margin: auto; }
-    .card {
-      background: white;
-      padding: 24px;
-      border-radius: 14px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    }
-    h1 { margin-top: 0; margin-bottom: 8px; font-size: 24px; font-weight: 700; }
-    .subtitle { color: #6b7280; margin-bottom: 20px; font-size: 14px; }
-    label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 15px; color: #374151; }
-    
-    select, textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 15px;
-      background: white;
-      outline: none;
-    }
-    select:focus, textarea:focus { border-color: #2563eb; }
-    textarea {
-      min-height: 90px;
-      resize: vertical;
-      font-family: inherit;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 14px;
-      border: 0;
-      border-radius: 8px;
-      color: white;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .btn-primary { background: #2563eb; margin-top: 15px; }
-    .btn-secondary { background: #4b5563; margin-bottom: 20px; }
-    .btn:hover { opacity: 0.92; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Bottom Navbar */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 64px;
-      background: #ffffff;
-      border-top: 1px solid #e5e7eb;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 100;
-      max-width: 600px;
-      margin: auto;
-    }
-    .nav-item {
-      flex: 1;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #6b7280;
-      font-size: 13px;
-      font-weight: 600;
-      gap: 4px;
-    }
-    .nav-item.active { color: #2563eb; }
-    .nav-icon { font-size: 18px; }
-
-    /* Saved PANs UI */
-    .saved-section {
-      background: #e5e7eb;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    .saved-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .clear-text {
-      color: #dc2626;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 0;
-    }
-    .saved-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #ffffff;
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      border: 1px solid #e5e7eb;
-    }
-    .saved-pan { font-weight: 700; color: #111827; width: 35%; font-size: 14px; }
-    .saved-name {
-      color: #4b5563;
-      flex: 1;
-      text-align: right;
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding-right: 8px;
-    }
-    .delete-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px;
-      font-size: 12px;
-    }
-    .inline-error {
-      color: #dc2626;
-      font-size: 13px;
-      margin-bottom: 10px;
-      font-weight: 500;
-      display: none;
-    }
-
-    /* Results UI */
-    #status { margin-top: 20px; }
-    .status-message { padding: 14px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
-    .loading { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
-    .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-    .result-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 14px;
-      margin-bottom: 10px;
-      background: #ffffff;
-    }
-    .result-header {
-      font-weight: 700;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 15px;
-    }
-    .badge {
-      padding: 3px 7px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .badge-green { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .badge-red { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .investor-details {
-      margin-top: 10px;
-      padding: 10px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .result-error { color: #b91c1c; margin-top: 8px; font-size: 13px; font-weight: 600; }
-  </style>
+  <meta name="description" content="Qasid - IPO allotment checker for KFintech, MUFG, Bigshare and more, plus live IPO calendar, subscription and GMP.">
+  <title>Qasid - IPO Allotment & Calendar</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-  <div class="container">
-    <!-- TAB 1: CHECK IPO SCREEN -->
-    <div id="tab-check" class="tab-content active card">
-      <h1>IPO Allotment Checker</h1>
-      <div class="subtitle">Select an active IPO to check allotment for all saved PANs.</div>
-
-      <label for="ipoSelect">Select IPO</label>
-      <select id="ipoSelect">
-        <option value="">Loading IPOs...</option>
-      </select>
-
-      <button id="checkButton" class="btn btn-primary" onclick="handleCheck()">Check Allotment</button>
-      <div id="status"></div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark">Q</span><span>Qasid</span></div>
+      <nav class="top-nav" aria-label="Main">
+        <button class="nav-link active" data-tab="market">IPOs</button>
+        <button class="nav-link" data-tab="check">Allotment</button>
+        <button class="nav-link" data-tab="pans">Saved PANs</button>
+      </nav>
+      <button id="themeToggle" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">◐</button>
     </div>
+  </header>
 
-    <!-- TAB 2: SAVED PANS SCREEN -->
-    <div id="tab-pans" class="tab-content card">
-      <h1>Manage PANs</h1>
-      <div class="subtitle">Add and manage PAN numbers saved locally in browser storage.</div>
+  <main class="container">
+    <!-- ================= IPO DASHBOARD ================= -->
+    <section id="tab-market" class="tab active">
+      <div class="section-head">
+        <div>
+          <h1>IPO Dashboard</h1>
+          <p class="muted" id="marketUpdated">Loading live IPO data…</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="marketRefresh">↻ Refresh</button>
+      </div>
 
-      <label for="pansInput">Add PANs to Browser Storage</label>
-      <textarea id="pansInput" placeholder="Paste PANs here (one per line or comma-separated)" autocomplete="off"></textarea>
-      <div id="inlineError" class="inline-error"></div>
-      
-      <button class="btn btn-secondary" onclick="handleAddPans()">Add to Saved List</button>
+      <div class="toolbar">
+        <div class="seg" id="marketStatusSeg" role="tablist">
+          <button class="seg-btn active" data-status="open">Open <span class="count" id="cnt-open">0</span></button>
+          <button class="seg-btn" data-status="upcoming">Upcoming <span class="count" id="cnt-upcoming">0</span></button>
+          <button class="seg-btn" data-status="closed">Closed <span class="count" id="cnt-closed">0</span></button>
+          <button class="seg-btn" data-status="listed">Listed <span class="count" id="cnt-listed">0</span></button>
+          <button class="seg-btn" data-status="drhp">DRHP filed</button>
+        </div>
+        <div class="toolbar-right">
+          <div class="seg seg-small" id="marketTypeSeg">
+            <button class="seg-btn active" data-type="all">All</button>
+            <button class="seg-btn" data-type="Mainboard">Mainboard</button>
+            <button class="seg-btn" data-type="SME">SME</button>
+          </div>
+          <input type="search" id="marketSearch" class="input input-sm" placeholder="Search IPO…">
+        </div>
+      </div>
 
-      <div class="saved-section">
-        <div class="saved-header">
-          <label style="margin: 0;">Saved PANs (<span id="savedCount">0</span>)</label>
-          <button class="clear-text" onclick="handleClearPans()">Clear All</button>
+      <div id="marketGrid" class="ipo-grid"></div>
+    </section>
+
+    <!-- ================= ALLOTMENT CHECK ================= -->
+    <section id="tab-check" class="tab">
+      <div class="section-head">
+        <div>
+          <h1>Check Allotment</h1>
+          <p class="muted">Pick an IPO and check every saved PAN in one go.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="label" for="ipoSearch">IPO</label>
+        <div class="chip-row" id="registrarChips"></div>
+        <input type="search" id="ipoSearch" class="input" placeholder="Type to search IPOs…" autocomplete="off">
+        <select id="ipoSelect" class="input ipo-select" size="7" aria-label="IPO list">
+          <option value="">Loading IPOs…</option>
+        </select>
+        <div id="selectedIpo" class="selected-ipo muted">No IPO selected</div>
+
+        <div class="pan-picker">
+          <div class="label-row">
+            <span class="label">PANs to check</span>
+            <span class="muted small"><button class="link" id="selectAllPans">All</button> · <button class="link" id="selectNoPans">None</button></span>
+          </div>
+          <div id="panChecklist" class="pan-checklist"></div>
+          <details class="oneoff">
+            <summary>Check other PANs once (not saved)</summary>
+            <textarea id="oneOffPans" class="input" placeholder="One PAN per line or comma-separated"></textarea>
+          </details>
+        </div>
+
+        <button id="checkButton" class="btn btn-primary btn-block">Check Allotment</button>
+      </div>
+
+      <div id="checkSummary" class="summary" hidden></div>
+      <div id="status"></div>
+    </section>
+
+    <!-- ================= SAVED PANS ================= -->
+    <section id="tab-pans" class="tab">
+      <div class="section-head">
+        <div>
+          <h1>Saved PANs</h1>
+          <p class="muted">Stored only in this browser. Never sent anywhere except the registrar lookup.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <label class="label" for="pansInput">Add PANs</label>
+        <textarea id="pansInput" class="input" placeholder="Paste PANs here (one per line or comma-separated). Optional nickname: ABCDE1234F Mom" autocomplete="off"></textarea>
+        <div id="inlineError" class="inline-error" hidden></div>
+        <button class="btn btn-primary btn-block" id="addPansBtn">Add to Saved List</button>
+      </div>
+
+      <div class="card">
+        <div class="label-row">
+          <span class="label">Saved (<span id="savedCount">0</span>)</span>
+          <span class="small">
+            <button class="link" id="exportPans">Export</button> ·
+            <button class="link danger" id="clearPans">Clear all</button>
+          </span>
         </div>
         <div id="savedListContainer"></div>
       </div>
+    </section>
+
+    <footer class="footer">
+      <div id="registrarHealth" class="health"></div>
+      <p class="muted small">Data is fetched live from registrar and exchange websites. GMP is unofficial and indicative only. Not investment advice.</p>
+    </footer>
+  </main>
+
+  <!-- Bottom nav (mobile) -->
+  <nav class="bottom-nav" aria-label="Main mobile">
+    <button class="nav-item active" data-tab="market"><span class="nav-icon">📈</span><span>IPOs</span></button>
+    <button class="nav-item" data-tab="check"><span class="nav-icon">✅</span><span>Allotment</span></button>
+    <button class="nav-item" data-tab="pans"><span class="nav-icon">📋</span><span>PANs</span></button>
+  </nav>
+
+  <!-- IPO detail drawer -->
+  <div id="drawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-close></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <button class="icon-btn drawer-close" data-close aria-label="Close">✕</button>
+      <div id="drawerBody"></div>
     </div>
   </div>
 
-  <!-- BOTTOM TAB BAR -->
-  <nav class="bottom-nav">
-    <button id="nav-check" class="nav-item active" onclick="switchTab('check')">
-      <span class="nav-icon">📊</span>
-      <span>Check IPO</span>
-    </button>
-    <button id="nav-pans" class="nav-item" onclick="switchTab('pans')">
-      <span class="nav-icon">🪪</span>
-      <span>Saved PANs</span>
-    </button>
-  </nav>
-
-  <script>
-    let savedPans = JSON.parse(localStorage.getItem('savedPans')) || [];
-
-    const ipoSelect = document.getElementById('ipoSelect');
-    const pansInput = document.getElementById('pansInput');
-    const inlineError = document.getElementById('inlineError');
-    const savedListContainer = document.getElementById('savedListContainer');
-    const savedCount = document.getElementById('savedCount');
-    const checkButton = document.getElementById('checkButton');
-    const statusBox = document.getElementById('status');
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-
-      if (tabId === 'check') {
-        document.getElementById('tab-check').classList.add('active');
-        document.getElementById('nav-check').classList.add('active');
-      } else {
-        document.getElementById('tab-pans').classList.add('active');
-        document.getElementById('nav-pans').classList.add('active');
-      }
-    }
-
-    async function loadIpos() {
-      try {
-        const res = await fetch('/api/ipos');
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Failed to fetch IPOs');
-
-        ipoSelect.innerHTML = '<option value="">Select an IPO...</option>';
-        data.ipos.forEach(ipo => {
-          const opt = document.createElement('option');
-          opt.value = ipo.clientId;
-          opt.textContent = ipo.name;
-          ipoSelect.appendChild(opt);
-        });
-      } catch (err) {
-        ipoSelect.innerHTML = '<option value="">Unable to load IPO list</option>';
-      }
-    }
-
-    function renderSavedList() {
-      savedCount.textContent = savedPans.length;
-      if (savedPans.length === 0) {
-        savedListContainer.innerHTML = '<div style="color:#6b7280; font-style:italic; font-size:13px;">No PANs saved yet.</div>';
-        return;
-      }
-
-      savedListContainer.innerHTML = savedPans.map(sp => `
-        <div class="saved-row">
-          <div class="saved-pan">${sp.pan}</div>
-          <div class="saved-name" title="${sp.name}">${sp.name}</div>
-          <button class="delete-btn" onclick="handleDeletePan('${sp.pan}')">❌</button>
-        </div>
-      `).join('');
-    }
-
-    function handleAddPans() {
-      const input = pansInput.value.trim();
-      if (!input) return;
-
-      const panArray = input.split(/\r?\n|,/).map(p => p.trim().toUpperCase()).filter(Boolean);
-      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
-      const validPans = [], invalidPans = [];
-
-      panArray.forEach(pan => {
-        if (panRegex.test(pan)) validPans.push(pan);
-        else invalidPans.push(pan);
-      });
-
-      if (invalidPans.length > 0) {
-        inlineError.textContent = `Invalid format: ${invalidPans.join(', ')}. Please enter valid 10-digit PANs.`;
-        inlineError.style.display = 'block';
-        setTimeout(() => { inlineError.style.display = 'none'; }, 5000);
-      } else {
-        inlineError.style.display = 'none';
-      }
-
-      if (validPans.length === 0) return;
-
-      validPans.forEach(pan => {
-        if (!savedPans.find(p => p.pan === pan)) {
-          savedPans.push({ pan, name: 'Check allotment to fetch name' });
-        }
-      });
-
-      localStorage.setItem('savedPans', JSON.stringify(savedPans));
-      pansInput.value = '';
-      renderSavedList();
-    }
-
-    function handleClearPans() {
-      if (confirm('Clear all saved PANs from this browser?')) {
-        savedPans = [];
-        localStorage.removeItem('savedPans');
-        statusBox.innerHTML = '';
-        renderSavedList();
-      }
-    }
-
-    function handleDeletePan(panToRemove) {
-      if (confirm(`Are you sure you want to remove ${panToRemove}?`)) {
-        savedPans = savedPans.filter(p => p.pan !== panToRemove);
-        localStorage.setItem('savedPans', JSON.stringify(savedPans));
-        renderSavedList();
-      }
-    }
-
-    async function handleCheck() {
-      const selectedIpo = ipoSelect.value;
-      if (!selectedIpo) return alert('Please select an IPO.');
-
-      const stored = localStorage.getItem('savedPans');
-      const currentSaved = stored ? JSON.parse(stored) : [];
-
-      if (currentSaved.length === 0) {
-        return alert('Please go to the Saved PANs tab and add at least one PAN.');
-      }
-
-      const panArray = currentSaved.map(p => p.pan);
-
-      checkButton.disabled = true;
-      checkButton.textContent = 'Checking Allotment...';
-      statusBox.innerHTML = `<div class="status-message loading">Checking allotment for ${panArray.length} PAN(s)...</div>`;
-
-      try {
-        const response = await fetch('/api/check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: selectedIpo, pans: panArray })
-        });
-
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Check failed.');
-
-        let listUpdated = false;
-        data.results.forEach(res => {
-          if (res.success && res.data && res.data.Name && res.data.Name !== 'N/A' && !res.data.Name.includes('Not Provided')) {
-            const matchIndex = savedPans.findIndex(p => p.pan === res.pan);
-            if (matchIndex !== -1 && savedPans[matchIndex].name !== res.data.Name) {
-              savedPans[matchIndex].name = res.data.Name;
-              listUpdated = true;
-            }
-          }
-        });
-
-        if (listUpdated) {
-          localStorage.setItem('savedPans', JSON.stringify(savedPans));
-          renderSavedList();
-        }
-
-        // Rank results: 1. Allotted, 2. Not Allotted, 3. Not Applied, 4. Errors
-        data.results.sort((a, b) => {
-          const getRank = (r) => {
-            if (r.success && r.data) return parseInt(r.data.Allotted, 10) > 0 ? 1 : 2;
-            if (r.error === 'You have not applied for this IPO.') return 3;
-            return 4;
-          };
-          return getRank(a) - getRank(b);
-        });
-
-        renderResults(data.results);
-      } catch (err) {
-        statusBox.innerHTML = `<div class="status-message error">${err.message || 'Server error occurred.'}</div>`;
-      } finally {
-        checkButton.disabled = false;
-        checkButton.textContent = 'Check Allotment';
-      }
-    }
-
-    function renderResults(results) {
-      statusBox.innerHTML = results.map(res => {
-        // Fetch saved name for "Not Applied" cases
-        const savedMatch = savedPans.find(p => p.pan === res.pan);
-        const knownName = (savedMatch && savedMatch.name !== 'Check allotment to fetch name') ? savedMatch.name : null;
-
-        let statusBadge = '';
-        if (res.success && res.data) {
-          const isAllotted = parseInt(res.data.Allotted, 10) > 0;
-          statusBadge = isAllotted
-            ? '<span class="badge badge-green">ALLOTTED</span>'
-            : '<span class="badge badge-red">NOT ALLOTTED</span>';
-        }
-
-        let content = '';
-        if (res.error === 'You have not applied for this IPO.') {
-          content = `<div class="result-error">You have not applied for this IPO.</div>`;
-          if (knownName) content = `<div class="investor-details"><div style="margin-bottom: 2px;"><strong>Name:</strong> ${knownName}</div></div>` + content;
-        } else if (!res.success) {
-          content = `<div class="result-error">${res.error || 'Details unavailable.'}</div>`;
-          if (knownName) content = `<div class="investor-details"><div style="margin-bottom: 2px;"><strong>Name:</strong> ${knownName}</div></div>` + content;
-        } else {
-          content = `
-            <div class="investor-details">
-              <div style="margin-bottom: 4px;"><strong>Name:</strong> ${res.data.Name}</div>
-              <div><strong>Shares Allotted:</strong> ${res.data.Allotted}</div>
-            </div>`;
-        }
-
-        return `
-          <div class="result-card">
-            <div class="result-header">
-              <span>PAN: ${res.pan}</span>
-              ${statusBadge}
-            </div>
-            ${content}
-          </div>`;
-      }).join('');
-    }
-
-    loadIpos();
-    renderSavedList();
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
