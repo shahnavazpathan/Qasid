@@ -132,6 +132,15 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
         </div>
       )}
 
+      <a href="#/planner" className="mt-6 card p-5 flex items-center gap-4 hover:ring-2 hover:ring-brand/40 transition-shadow">
+        <span className="size-12 shrink-0 grid place-items-center rounded-2xl bg-brand text-on-brand"><Icon name="calendar" className="size-6" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-extrabold text-[16px]">Which IPO should you apply to?</span>
+          <span className="block text-[13.5px] text-ink-3">See overlapping IPOs on a calendar, priority scores and the best plan for your budget and PANs.</span>
+        </span>
+        <span className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-bold text-brand">Open planner<Icon name="arrowRight" className="size-4" /></span>
+      </a>
+
       <div className="grid lg:grid-cols-3 gap-4">
         <div>
           <SectionHead title="Upcoming" icon="calendar" action="All" onAction={() => onBrowse("upcoming")} />

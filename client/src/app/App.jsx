@@ -6,11 +6,13 @@ import { AllotmentProvider, AllotmentView, useAllotment } from "../modules/allot
 import { IpoDetail, ipoId, MarketProvider, MarketView, useMarket } from "../modules/market/index.js";
 import { AlertsProvider, useAlerts } from "../modules/alerts/index.js";
 import { HomeView } from "../modules/home/index.js";
+import { PlannerView } from "../modules/planner/index.js";
 
-const ROUTES = ["home", "ipos", "allotment", "pans", "ipo"];
+const ROUTES = ["home", "ipos", "planner", "allotment", "pans", "ipo"];
 const NAV = [
   { route: "home", label: "Home", icon: "home" },
   { route: "ipos", label: "IPOs", icon: "list" },
+  { route: "planner", label: "Planner", icon: "calendar" },
   { route: "allotment", label: "Allotment", icon: "check" },
   { route: "pans", label: "My PANs", icon: "users" }
 ];
@@ -113,13 +115,14 @@ function Shell() {
           {route === "ipo" && (pageIpo
             ? <IpoDetail key={ipoId(pageIpo)} ipo={pageIpo} onBack={closeIpo} onCheckAllotment={checkAllotment} />
             : <SkeletonCards count={3} />)}
+          {page === "planner" && <PlannerView onOpenIpo={openIpo} />}
           {page === "allotment" && <AllotmentView />}
           {page === "pans" && <PansView />}
           <Footer />
         </main>
 
         <nav aria-label="Main" className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-xl border-t border-line pb-[env(safe-area-inset-bottom)]">
-          <div className="grid grid-cols-4 h-16">
+          <div className="grid grid-cols-5 h-16">
             {NAV.map(n => {
               const active = page === n.route;
               return (

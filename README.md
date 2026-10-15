@@ -28,6 +28,11 @@
   * **Documents:** RHP, anchor allocation, basis of issue price, plus links to broker apps to apply.
 * Data refreshes every minute; the IPO detail refreshes subscription every 90 seconds.
 
+### IPO planner
+* **Overlap calendar:** every open/upcoming IPO on a day-by-day timeline — bidding window, money-blocked days, allotment and listing — with a count of IPOs open each day and the plan's blocked money per day against your budget.
+* **Smart priority score (0–100)** with a verdict (Strong apply / Apply / Consider / Avoid) and the reasons behind it: GMP and expected listing gain, projected final demand and allotment chance, expected profit per ₹1 lakh blocked, GMP trend, QIB demand and SME risk.
+* **Budget optimiser:** enter your budget, number of PANs, category (Retail / Small HNI) and SME preference; Qasid picks the IPOs and number of applications that fit, applying on each IPO's last day so money unblocked from one allotment is recycled into the next. Shows peak money blocked and expected profit.
+
 ### Alerts & PANs
 * **Watchlist (★)** with browser notifications when a watched IPO opens, closes or lists.
 * **Auto-check:** when a watched IPO's allotment is published, every selected PAN is checked automatically and you're notified of the result.
