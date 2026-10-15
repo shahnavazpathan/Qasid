@@ -122,21 +122,21 @@ export function MarketProvider({ children }) {
 // Lazily enriches a board row with exchange detail (category subscription, documents, registrar...)
 export function useIpoDetail(ipo) {
   const [state, setState] = useState({ detail: null, loading: false });
-  const symbol = ipo?.symbol;
-  const type = ipo?.type;
+  // The board id works whether or not NSE gave the IPO a symbol (the server falls back to BSE/Chittorgarh)
+  const id = ipo?.id;
 
   useEffect(() => {
-    if (!symbol) { setState({ detail: null, loading: false }); return; }
+    if (!id) { setState({ detail: null, loading: false }); return; }
     let live = true;
     setState({ detail: null, loading: true });
-    const fetchDetail = () => marketService.detail(symbol, type)
+    const fetchDetail = () => marketService.detail(id)
       .then(detail => live && setState({ detail, loading: false }))
       .catch(() => live && setState(s => ({ ...s, loading: false })));
     fetchDetail();
     // Keep live subscription fresh while the sheet is open
-    const id = setInterval(() => { if (!document.hidden) fetchDetail(); }, 90 * 1000);
-    return () => { live = false; clearInterval(id); };
-  }, [symbol, type]);
+    const timer = setInterval(() => { if (!document.hidden) fetchDetail(); }, 90 * 1000);
+    return () => { live = false; clearInterval(timer); };
+  }, [id]);
 
   return state;
 }

@@ -154,6 +154,7 @@ For frontend work, run `npm run dev:client`. Vite starts on `:5173` and forwards
 | `SESSION_SECRET` | Optional. Signs session cookies; if unset, one is generated once and kept in MongoDB |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional web push keys; generated once and kept in MongoDB if unset |
 | `EXTRA_ORIGINS` | More allowed site origins, separated by commas |
+| `NSE_DISABLED` | Set to `1` to skip NSE (it blocks most cloud servers); IPO details then come from BSE, then Chittorgarh |
 | `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |
 
 </details>
