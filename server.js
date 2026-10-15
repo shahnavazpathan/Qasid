@@ -9,6 +9,8 @@ const { mapWithConcurrency } = require("./lib/http");
 const market = require("./lib/market");
 const storeLib = require("./lib/store");
 const push = require("./lib/push");
+const allotments = require("./lib/allotments");
+const history = require("./lib/history");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -102,14 +104,19 @@ const IPO_CACHE_TIME = 5 * 60 * 1000;
 let ipoCache = { data: null, fetchedAt: 0 };
 let ipoFetchInProgress = null;
 
-// Last good list per registrar, so one registrar being down doesn't wipe its IPOs
-// (and doesn't make them all look "new" - and trigger push spam - when it recovers)
+// Last good list per registrar (persisted), so a registrar that is down - even right after a
+// restart/redeploy - still shows its allotments instead of dropping them from the list.
 const lastGoodLists = new Map();
 const registrarStatus = new Map();
-// First time an IPO was seen: Map<"source:clientId", timestamp>
-const ipoDiscoveryTimes = new Map();
 
 function ipoIdentity(ipo) { return `${ipo.source}:${ipo.clientId}`; }
+
+async function loadLastGoodLists() {
+  await Promise.all(registrars.map(async r => {
+    const saved = await storeLib.store().getConfig(`lastList:${r.id}`).catch(() => null);
+    if (Array.isArray(saved) && saved.length) lastGoodLists.set(r.id, saved);
+  }));
+}
 
 async function fetchRegistrarIpos(registrar) {
   const startedAt = Date.now();
@@ -124,17 +131,19 @@ async function fetchRegistrarIpos(registrar) {
     if (ipos.length === 0) throw new Error("empty IPO list - page format may have changed");
     // Registrar pages already list newest first; only registrars with sequential IDs are re-sorted by ID
     if (registrar.sortById) ipos.sort((a, b) => (parseInt(b.clientId, 10) || 0) - (parseInt(a.clientId, 10) || 0));
+    const previous = lastGoodLists.get(registrar.id);
     lastGoodLists.set(registrar.id, ipos);
+    if (!previous || previous.map(ipoIdentity).join() !== ipos.map(ipoIdentity).join()) {
+      storeLib.store().setConfig(`lastList:${registrar.id}`, ipos).catch(() => {});
+    }
     registrarStatus.set(registrar.id, { ok: true, count: ipos.length, ms: Date.now() - startedAt, at: Date.now() });
-    return ipos;
+    return { registrarId: registrar.id, ok: true, ipos };
   } catch (err) {
     console.error(`[${registrar.tag}] Failed to fetch IPO list:`, err.message);
     registrarStatus.set(registrar.id, { ok: false, error: err.message, ms: Date.now() - startedAt, at: Date.now() });
-    return lastGoodLists.get(registrar.id) || [];
+    return { registrarId: registrar.id, ok: false, ipos: lastGoodLists.get(registrar.id) || [] };
   }
 }
-
-const SERVER_STARTED = Date.now();
 
 // name -> allotment date (falls back to listing/close date) using the IPO board; unknown -> null
 async function allotmentDateLookup() {
@@ -155,36 +164,43 @@ async function allotmentDateLookup() {
   };
 }
 
+// An allotment counts as "new" in the app for this long after Qasid first saw it published
+const NEW_FOR_MS = 48 * 3600e3;
+
 async function fetchLiveIpoList(forceRefresh = false) {
   if (!forceRefresh && ipoCache.data && Date.now() - ipoCache.fetchedAt < IPO_CACHE_TIME) return ipoCache.data;
   if (ipoFetchInProgress) return ipoFetchInProgress;
 
   ipoFetchInProgress = (async () => {
     try {
-      const perRegistrar = await Promise.all(registrars.map(fetchRegistrarIpos));
-      const merged = perRegistrar.flat();
-      const nowTime = Date.now();
+      const rounds = await Promise.all(registrars.map(fetchRegistrarIpos));
+      const merged = rounds.flatMap(r => r.ipos).map(ipo => ({ ...ipo }));
       const registrarOrder = new Map(registrars.map((r, i) => [r.id, i]));
       // Position within its own registrar's list (each list is newest-first) - used to interleave registrars
-      const rankInRegistrar = new Map(perRegistrar.flatMap(list => list.map((ipo, i) => [ipoIdentity(ipo), i])));
+      const rankInRegistrar = new Map(rounds.flatMap(r => r.ipos.map((ipo, i) => [ipoIdentity(ipo), i])));
       const allotmentDates = await allotmentDateLookup();
 
+      // Persisted first-seen registry decides what is genuinely new (see lib/allotments.js)
+      const fresh = await allotments.update(rounds, ipo => allotmentDates(ipo.name)).catch(err => {
+        console.error("[ALLOTMENTS] update failed:", err.message);
+        return [];
+      });
+
+      const now = Date.now();
       merged.forEach(ipo => {
-        const key = ipoIdentity(ipo);
-        if (!ipoDiscoveryTimes.has(key)) ipoDiscoveryTimes.set(key, nowTime);
-        ipo.discoveredAt = ipoDiscoveryTimes.get(key);
         ipo.allotmentDate = allotmentDates(ipo.name);
+        ipo.discoveredAt = allotments.firstSeen(ipo);
+        ipo.isNew = ipo.discoveredAt > 0 && now - ipo.discoveredAt < NEW_FOR_MS;
       });
 
       // Latest allotment first, regardless of registrar:
-      // 1. allotments that appeared while the server was running (newest first)
-      // 2. by allotment date from the IPO board (newest first; unknown dates last)
-      // 3. interleave registrars by each one's own newest-first order
-      const freshAfter = SERVER_STARTED + 2 * 60 * 1000;
+      // 1. allotments published in the last 48h (as observed by Qasid), newest first
+      // 2. then by allotment date from the IPO board, newest first (unknown dates last)
+      // 3. then interleave registrars by each one's own newest-first order
       merged.sort((a, b) => {
-        const freshA = a.discoveredAt > freshAfter ? a.discoveredAt : 0;
-        const freshB = b.discoveredAt > freshAfter ? b.discoveredAt : 0;
-        if (freshA !== freshB) return freshB - freshA;
+        const newA = a.isNew ? a.discoveredAt : 0;
+        const newB = b.isNew ? b.discoveredAt : 0;
+        if (newA !== newB) return newB - newA;
         const dateDiff = String(b.allotmentDate || "").localeCompare(String(a.allotmentDate || ""));
         if (dateDiff) return dateDiff;
         const rankDiff = rankInRegistrar.get(ipoIdentity(a)) - rankInRegistrar.get(ipoIdentity(b));
@@ -194,6 +210,12 @@ async function fetchLiveIpoList(forceRefresh = false) {
 
       if (merged.length === 0 && ipoCache.data) return ipoCache.data;
       ipoCache = { data: merged, fetchedAt: Date.now() };
+
+      // Announce genuinely new allotments, whichever request happened to discover them
+      for (const ipo of fresh) {
+        console.log(`[ALLOTMENTS] New allotment: ${ipo.name}`);
+        push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
+      }
       return merged;
     } finally {
       ipoFetchInProgress = null;
@@ -207,36 +229,64 @@ async function fetchLiveIpoList(forceRefresh = false) {
    ALLOTMENT CHECK
 ========================================================= */
 const NOT_APPLIED_MSG = "You have not applied for this IPO.";
-const ALLOTMENT_CACHE_LIMIT = 20000;
-const allotmentResultCache = new Map();
 
-function cacheAllotment(key, value) {
-  if (allotmentResultCache.size >= ALLOTMENT_CACHE_LIMIT) {
-    allotmentResultCache.delete(allotmentResultCache.keys().next().value);
-  }
-  allotmentResultCache.set(key, value);
+// Result cache: allotment outcomes are final once published, "not applied" can still change briefly
+// (registrars sometimes upload in batches), errors are never cached.
+const CACHE_LIMIT = 50000;
+const FOUND_TTL = 24 * 3600e3;
+const NOT_APPLIED_TTL = 30 * 60e3;
+const resultCache = new Map();          // key -> { value, expires }
+const inFlight = new Map();             // key -> Promise, so identical concurrent lookups share one request
+
+function cacheGet(key) {
+  const hit = resultCache.get(key);
+  if (!hit) return null;
+  if (hit.expires < Date.now()) { resultCache.delete(key); return null; }
+  return hit.value;
 }
 
-async function checkOnePan(ipo, registrar, rawPan) {
-  const pan = String(rawPan).trim().toUpperCase();
-  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return { pan, success: false, error: "Invalid PAN" };
+function cacheSet(key, value, ttl) {
+  if (resultCache.size >= CACHE_LIMIT) resultCache.delete(resultCache.keys().next().value);
+  resultCache.set(key, { value, expires: Date.now() + ttl });
+}
 
-  const cacheKey = `${ipoIdentity(ipo)}:${pan}`;
-  const cached = allotmentResultCache.get(cacheKey);
-  if (cached) return { ...cached, cached: true };
+// At most N live lookups per registrar across ALL requests: when an allotment comes out and many phones
+// check at once, requests queue here instead of getting Qasid rate-limited or blocked by the registrar.
+const registrarSlots = new Map();
+function withRegistrarSlot(registrar, fn) {
+  const limit = Math.max(4, (registrar.concurrency || 3) * 2);
+  let slot = registrarSlots.get(registrar.id);
+  if (!slot) registrarSlots.set(registrar.id, slot = { active: 0, queue: [] });
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      slot.active++;
+      Promise.resolve().then(fn).then(resolve, reject).finally(() => {
+        slot.active--;
+        const next = slot.queue.shift();
+        if (next) next();
+      });
+    };
+    if (slot.active < limit) run(); else slot.queue.push(run);
+  });
+}
 
+async function lookupPan(ipo, registrar, pan) {
   let outcome;
   try {
-    outcome = await registrar.checkPan(ipo, pan);
+    outcome = await withRegistrarSlot(registrar, () => registrar.checkPan(ipo, pan));
   } catch (err) {
     console.error(`[${registrar.tag}] check failed for ${ipo.clientId}:`, err.message);
-    return { pan, success: false, error: "Unable to contact allotment service.", source: registrar.id };
+    return { value: { pan, success: false, error: "Unable to contact allotment service.", source: registrar.id }, ttl: 0 };
   }
 
-  if (outcome.status === "not_applied") return { pan, success: false, error: NOT_APPLIED_MSG, source: registrar.id };
-  if (outcome.status !== "found") return { pan, success: false, error: outcome.error || "Unable to contact allotment service.", source: registrar.id };
-
-  const result = {
+  if (outcome.status === "not_applied") {
+    // "uncertain": a server that might hold the record couldn't be asked - don't cache, ask again next time
+    return { value: { pan, success: false, error: NOT_APPLIED_MSG, source: registrar.id }, ttl: outcome.uncertain ? 0 : NOT_APPLIED_TTL };
+  }
+  if (outcome.status !== "found") {
+    return { value: { pan, success: false, error: outcome.error || "Unable to contact allotment service.", source: registrar.id }, ttl: 0 };
+  }
+  const value = {
     pan,
     success: true,
     source: registrar.id,
@@ -247,51 +297,34 @@ async function checkOnePan(ipo, registrar, rawPan) {
       Applications: outcome.applications || []
     }
   };
-  if (outcome.server) result.server = outcome.server;
-  cacheAllotment(cacheKey, result);
-  return result;
+  if (outcome.server) value.server = outcome.server;
+  return { value, ttl: FOUND_TTL };
+}
+
+async function checkOnePan(ipo, registrar, rawPan) {
+  const pan = String(rawPan).trim().toUpperCase();
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return { pan, success: false, error: "Invalid PAN" };
+
+  const key = `${ipoIdentity(ipo)}:${pan}`;
+  const cached = cacheGet(key);
+  if (cached) return { ...cached, cached: true };
+
+  if (!inFlight.has(key)) {
+    inFlight.set(key, lookupPan(ipo, registrar, pan)
+      .then(({ value, ttl }) => { if (ttl) cacheSet(key, value, ttl); return value; })
+      .finally(() => inFlight.delete(key)));
+  }
+  return inFlight.get(key);
 }
 
 /* =========================================================
    BACKGROUND IPO MONITOR (push notifications)
 ========================================================= */
-// Every allotment ever seen (persisted), so a restart/redeploy neither misses nor re-announces allotments.
-// It only ever grows: a registrar that is briefly down doesn't make its IPOs look "new" when it returns.
-let knownAllotments = null;
-const KNOWN_LIMIT = 5000;
-// More "new" allotments than this in one pass means a registrar changed its IDs/format, not real news
-const MAX_NEW_PER_RUN = 8;
-
+// Refreshing the registrar lists is all the monitor does: fetchLiveIpoList() records first-seen times
+// in the persisted registry and announces genuinely new allotments.
 async function runIpoMonitor() {
   try {
-    const current = await fetchLiveIpoList(true);
-    if (!knownAllotments) {
-      const saved = await storeLib.store().getConfig("knownAllotments");
-      if (!saved) {
-        knownAllotments = new Set(current.map(ipoIdentity));
-        await storeLib.store().setConfig("knownAllotments", [...knownAllotments]);
-        console.log(`[IPO MONITOR] Seeded ${knownAllotments.size} known allotments`);
-        return;
-      }
-      knownAllotments = new Set(saved);
-    }
-
-    const added = current.filter(ipo => !knownAllotments.has(ipoIdentity(ipo)));
-    if (added.length === 0) return;
-
-    added.forEach(ipo => knownAllotments.add(ipoIdentity(ipo)));
-    const list = [...knownAllotments];
-    knownAllotments = new Set(list.slice(Math.max(0, list.length - KNOWN_LIMIT)));
-    await storeLib.store().setConfig("knownAllotments", [...knownAllotments]);
-
-    if (added.length > MAX_NEW_PER_RUN) {
-      console.warn(`[IPO MONITOR] ${added.length} new at once - treating as a registrar format change, not notifying`);
-      return;
-    }
-    for (const ipo of added) {
-      console.log(`[IPO MONITOR] New allotment: ${ipo.name}`);
-      await push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
-    }
+    await fetchLiveIpoList(true);
   } catch (error) {
     console.error("[IPO MONITOR] Error:", error.message);
   }
@@ -423,6 +456,7 @@ async function start() {
     auth.setSecret(secret);
   }
   await push.initPush();
+  await Promise.all([allotments.load(), loadLastGoodLists(), history.attachStore(storeLib.store())]);
 
   app.listen(PORT, () => {
     console.log("==================================================");

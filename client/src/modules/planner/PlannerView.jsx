@@ -214,7 +214,7 @@ export function PlannerView({ onOpenIpo, focusId }) {
         Priority ranking
       </h2>
       {analyses.length === 0 ? <Empty icon="calendar" title="No open or upcoming IPOs">Check back when new IPOs are announced.</Empty> : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {analyses.map((a, i) => <PickCard key={a.ipo.name} a={a} row={rowFor(a)} rank={i + 1} onOpen={onOpenIpo} focused={focusId === ipoId(a.ipo)} />)}
         </div>
       )}

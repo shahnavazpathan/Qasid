@@ -119,6 +119,8 @@
 
 @layer base {
   html { -webkit-text-size-adjust: 100%; }
+  /* Safety net: nothing may make the page scroll sideways on a phone (clip keeps sticky headers working) */
+  html, body { overflow-x: clip; max-width: 100%; }
   body {
     @apply bg-canvas text-ink font-sans antialiased;
     font-size: 15px;

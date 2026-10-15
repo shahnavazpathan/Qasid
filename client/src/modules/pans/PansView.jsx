@@ -33,7 +33,7 @@ export function PansView() {
         <p className="text-ink-3 mt-1">Family and friends' PANs, kept privately in this browser.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
         <div className="space-y-4 min-w-0">
           <div className="grid grid-cols-3 gap-3">
             <div className="card p-4"><p className="text-[26px] font-extrabold text-brand">{pans.length}</p><p className="text-[12.5px] font-semibold text-ink-3">PANs saved</p></div>

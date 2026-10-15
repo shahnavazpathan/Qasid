@@ -144,7 +144,7 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
         <span className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-bold text-brand">Open planner<Icon name="arrowRight" className="size-4" /></span>
       </a>
 
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div>
           <SectionHead title="Upcoming" icon="calendar" action="All" onAction={() => onBrowse("upcoming")} />
           <div className="card p-2">

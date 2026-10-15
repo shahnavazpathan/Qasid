@@ -38,12 +38,15 @@ export function AllotmentProvider({ children }) {
   const load = useCallback(async () => {
     try {
       const list = await allotmentService.listIpos();
-      // Anything not seen on the previous poll is a freshly published allotment
+      // Only allotments the server marks as genuinely new (isNew) count - an old IPO that reappears
+      // after a registrar outage must not trigger alerts or auto-checks. `known` only ever grows.
       if (known.current) {
-        const fresh = list.filter(i => !known.current.has(ipoKey(i)));
+        const fresh = list.filter(i => i.isNew && !known.current.has(ipoKey(i)));
         if (fresh.length) setNewlyOut(fresh);
+      } else {
+        known.current = new Set();
       }
-      known.current = new Set(list.map(ipoKey));
+      list.forEach(i => known.current.add(ipoKey(i)));
       setIpos(list);
       setLoadError("");
     } catch (err) {

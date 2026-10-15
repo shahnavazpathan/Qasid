@@ -94,7 +94,7 @@ export function AllotmentView() {
         <p className="text-ink-3 mt-1">One click for every PAN, across 10 registrars.</p>
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
         <div className="space-y-4 min-w-0">
           <Step n="1" title="Choose the IPO" hint="Only IPOs whose allotment is published appear here">
             <IpoPicker />
