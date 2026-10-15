@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const crypto = require("crypto");
 require("dotenv").config();
 const cors = require("cors");
 const { createAuth, rateLimit } = require("./lib/auth");
@@ -15,7 +16,6 @@ const PORT = process.env.PORT || 3000;
 /* =========================================================
    EXPRESS + AUTH
 ========================================================= */
-const SECRET_API_KEY = process.env.SECRET_API_KEY;
 
 const ALLOWED_WEB_DOMAINS = [
   "https://qasid.thevellora.co.in",
@@ -28,7 +28,8 @@ const ALLOWED_WEB_DOMAINS = [
 // Behind Render's proxy: take the client IP from X-Forwarded-For (one hop). Set TRUST_PROXY=0 when exposed directly.
 app.set("trust proxy", process.env.TRUST_PROXY === undefined ? 1 : Number(process.env.TRUST_PROXY) || false);
 
-const auth = createAuth({ secret: SECRET_API_KEY, allowedOrigins: ALLOWED_WEB_DOMAINS });
+// Session cookies are signed with SESSION_SECRET, or a secret generated once and kept in the database (see start())
+const auth = createAuth({ secret: process.env.SESSION_SECRET, allowedOrigins: ALLOWED_WEB_DOMAINS });
 app.use(cors(auth.corsOptions()));
 app.use(express.json({ limit: "20kb" }));
 app.use(auth.sessionIssuer);
@@ -43,19 +44,6 @@ app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 120, key: bySession }));
 app.use("/api/check", rateLimit({ windowMs: 10 * 60 * 1000, max: 2000, cost: panCount, message: tooManyChecks }));
 app.use("/api/check", rateLimit({ windowMs: 10 * 60 * 1000, max: 300, key: bySession, cost: panCount, message: tooManyChecks }));
 app.use("/api/push/test", rateLimit({ windowMs: 10 * 60 * 1000, max: 5, key: bySession }));
-
-// Expo push token from the mobile app (persisted, survives restarts/redeploys)
-app.post("/api/register-token", async (req, res) => {
-  const token = String(req.body?.token || "");
-  if (!/^(Expo|Exponent)PushToken\[[^\]]{10,200}\]$/.test(token)) return res.status(400).json({ success: false, error: "Invalid token." });
-  try {
-    await storeLib.store().addExpoToken(token);
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[PUSH] register-token:", err.message);
-    res.status(500).json({ success: false, error: "Could not save token." });
-  }
-});
 
 /* ---------- Web Push (installed PWA) ---------- */
 function validSubscription(sub) {
@@ -423,12 +411,29 @@ app.get("/health", (req, res) => {
 
 app.get("/", (req, res) => res.sendFile(path.join(WEB_ROOT, "index.html")));
 
-app.listen(PORT, async () => {
-  console.log("==================================================");
-  console.log(`  QASID - IPO CHECKER (${registrars.map(r => r.tag).join("/")})`);
-  console.log("==================================================");
-  console.log(`  Open: http://localhost:${PORT}`);
+// Storage and the session secret come first, so no visitor is handed a cookie signed with a throwaway key
+async function start() {
   await storeLib.init();
+  if (!process.env.SESSION_SECRET) {
+    let secret = await storeLib.store().getConfig("sessionSecret");
+    if (!secret) {
+      secret = crypto.randomBytes(32).toString("hex");
+      await storeLib.store().setConfig("sessionSecret", secret);
+    }
+    auth.setSecret(secret);
+  }
   await push.initPush();
-  await startIpoMonitor();
+
+  app.listen(PORT, () => {
+    console.log("==================================================");
+    console.log(`  QASID - IPO CHECKER (${registrars.map(r => r.tag).join("/")})`);
+    console.log("==================================================");
+    console.log(`  Open: http://localhost:${PORT}`);
+    startIpoMonitor();
+  });
+}
+
+start().catch(err => {
+  console.error("[STARTUP] Failed:", err);
+  process.exit(1);
 });

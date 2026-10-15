@@ -96,10 +96,9 @@
 
 ## 🔒 API access
 
-The Qasid API is **private**. It serves only the Qasid website and the Qasid app, and isn't open for public or third-party use.
+The Qasid API is **private**. It serves only the Qasid website (including the installed app), and isn't open for public or third-party use. There are no API keys.
 
 - Browser requests need a signed, `HttpOnly` session cookie that is issued when the site loads, **and** a request from Qasid's own origin. A spoofed `Origin` header from a script is rejected.
-- The mobile app signs every request with HMAC-SHA256 (`x-timestamp` + `x-signature`).
 - All endpoints are rate limited per IP and per session. PAN checks have their own tighter budget, because each PAN is a live lookup on a registrar.
 
 > 💬 **Want API access** for a project, a bot or research? Please [open an issue](https://github.com/shahnavazpathan/Qasid/issues/new?title=API%20access%20request) or reach out to [@shahnavazpathan](https://github.com/shahnavazpathan) and describe what you're building.
@@ -125,11 +124,11 @@ The Qasid API is **private**. It serves only the Qasid website and the Qasid app
 
 ```
 server.js               Express app, caching, allotment monitor, routes
-lib/auth.js             API gate: session cookie, HMAC signatures, rate limits
+lib/auth.js             API gate: session cookie, origin checks, rate limits
 lib/registrars/*.js     One module per registrar: listIpos() + checkPan()
 lib/market.js           IPO calendar / subscription / GMP / SEBI filings
 lib/history.js          Daily GMP and subscription snapshots for trends
-lib/push.js, store.js   Web push and Expo notifications, subscriber store
+lib/push.js, store.js   Web push notifications, subscriber store
 client/src/modules/     home, market, planner, allotment, pans, alerts
 client/public/          logo, icons, manifest, service worker
 ```
@@ -151,9 +150,9 @@ For frontend work, run `npm run dev:client`. Vite starts on `:5173` and forwards
 
 | Variable | Purpose |
 |---|---|
-| `SECRET_API_KEY` | Signs session cookies and verifies requests from the mobile app |
-| `MONGODB_URI`, `MONGODB_DB` | Subscriber store, so subscriptions survive redeploys |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push keys |
+| `MONGODB_URI`, `MONGODB_DB` | **Required in production.** Stores push subscribers, announced allotments and server keys so they survive redeploys |
+| `SESSION_SECRET` | Optional. Signs session cookies; if unset, one is generated once and kept in MongoDB |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional web push keys; generated once and kept in MongoDB if unset |
 | `EXTRA_ORIGINS` | More allowed site origins, separated by commas |
 | `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |
 
