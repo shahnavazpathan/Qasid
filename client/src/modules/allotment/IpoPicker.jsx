@@ -46,6 +46,7 @@ export function IpoPicker() {
         <div className="min-w-0 flex-1">
           <p className="font-bold text-[16px] leading-snug truncate">{displayName(selected.name)}</p>
           <p className="text-[12.5px] text-brand font-semibold">{selected.registrar || selected.source}</p>
+          {selected.retired && <p className="text-[12px] text-ink-3 mt-0.5">Checker closed by the registrar. Only results Qasid saved earlier are available.</p>}
         </div>
         <button
           onClick={() => { setEditing(true); setActive(0); requestAnimationFrame(() => input.current?.focus()); }}
@@ -105,6 +106,7 @@ export function IpoPicker() {
             >
               <CompanyLogo name={displayName(ipo.name)} size={32} className="rounded-xl!" />
               <span className="flex-1 truncate font-medium text-[14px]">{displayName(ipo.name)}</span>
+              {ipo.retired && <span className="shrink-0 text-[11.5px] font-semibold text-closed bg-closed-soft rounded-full px-2 h-6 grid place-items-center">Closed</span>}
               <span className="shrink-0 text-[11.5px] font-semibold text-ink-3 bg-raised rounded-full px-2 h-6 grid place-items-center">{ipo.registrar || ipo.source}</span>
             </li>
           ))}

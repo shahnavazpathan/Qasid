@@ -42,7 +42,7 @@ async function checkPans(req, res) {
     const uniquePans = [...new Set(pans.map(p => String(p).trim().toUpperCase()))];
     const results = await mapWithConcurrency(uniquePans, registrar.concurrency || 3, pan => checkOnePan(selectedIpo, registrar, pan));
 
-    return res.json({ success: true, total: results.length, ipo: { name: selectedIpo.name, source: selectedIpo.source, registrar: registrar.label }, results });
+    return res.json({ success: true, total: results.length, ipo: { name: selectedIpo.name, source: selectedIpo.source, registrar: registrar.label, retired: !!selectedIpo.retired }, results });
   } catch (error) {
     console.error("[CHECK] Error:", error.message);
     return res.status(500).json({ success: false, error: "Internal server error" });

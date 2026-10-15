@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Confetti, Icon, useToast } from "../../shared/ui/index.js";
-import { num } from "../../shared/lib/format.js";
+import { date, num } from "../../shared/lib/format.js";
 import { displayName, downloadCsv, normName } from "../../shared/lib/names.js";
 import { initials, swatch } from "../../shared/lib/ipo.js";
 import { usePans } from "../pans/pans.controller.jsx";
@@ -8,6 +8,7 @@ import { NOT_APPLIED } from "./allotment.controller.jsx";
 
 const statusOf = r => {
   if (r.success) return Number(r.data.Allotted) > 0 ? "allotted" : "not-allotted";
+  if (r.retired) return "closed";
   return r.error === NOT_APPLIED ? "not-applied" : "error";
 };
 
@@ -15,6 +16,7 @@ const STATUS = {
   "allotted": { label: "Allotted", chip: "bg-gain text-on-brand", card: "ring-2 ring-gain/60 bg-gain-soft/40" },
   "not-allotted": { label: "Not allotted", chip: "bg-loss-soft text-loss", card: "" },
   "not-applied": { label: "Not applied", chip: "bg-raised text-ink-3", card: "" },
+  "closed": { label: "Not saved", chip: "bg-raised text-ink-3", card: "" },
   "error": { label: "Retry", chip: "bg-closed-soft text-closed", card: "" }
 };
 
@@ -22,6 +24,7 @@ const statusText = r => ({
   "allotted": `Allotted ${r.data?.Allotted} shares`,
   "not-allotted": "Not allotted",
   "not-applied": "Not applied",
+  "closed": "Checker closed, no saved result",
   "error": r.error || "Unavailable"
 })[statusOf(r)];
 
@@ -67,7 +70,7 @@ export function Results({ ipo, results, summary, compact = false }) {
           <div>
             <p className="text-[13px] font-semibold text-ink-3">{displayName(ipo.name)}</p>
             <p className="text-[22px] font-extrabold leading-tight">
-              {summary.allotted ? <>🎉 {summary.allotted} of {summary.total} allotted</> : summary.applied ? "No allotment this time" : "No applications found"}
+              {summary.allotted ? <>🎉 {summary.allotted} of {summary.total} allotted</> : summary.applied ? "No allotment this time" : results.every(r => r.retired) ? "No saved results" : "No applications found"}
             </p>
           </div>
           <div className="flex gap-1">
@@ -76,6 +79,11 @@ export function Results({ ipo, results, summary, compact = false }) {
             <Button size="icon" onClick={csv} aria-label="Download CSV"><Icon name="download" className="size-4.5" /></Button>
           </div>
         </div>
+        {ipo.retired && (
+          <p className="mt-3 rounded-xl bg-raised px-3 py-2.5 text-[13px] text-ink-2">
+            The registrar has closed the checker for this IPO. Results shown are the ones Qasid saved while it was open.
+          </p>
+        )}
         <div className="mt-4 grid grid-cols-4 gap-2">
           <Tile value={summary.total} label="Checked" tone="bg-raised" />
           <Tile value={summary.applied} label="Applied" tone="bg-upcoming-soft text-upcoming" />
@@ -96,12 +104,14 @@ export function Results({ ipo, results, summary, compact = false }) {
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-[13.5px] font-medium tracking-wide">{r.pan}</p>
                 <p className="text-[13px] text-ink-2 truncate">{label || "—"}</p>
+                {r.archived && <p className="text-[11.5px] text-ink-3">Saved {date(r.savedAt, true)}</p>}
               </div>
               <div className="text-right shrink-0">
                 <span className={`inline-flex h-7 items-center px-2.5 rounded-full text-[12px] font-bold ${STATUS[s].chip}`}>
                   {s === "allotted" ? `${num(r.data.Allotted)} shares` : s === "error" ? "Error" : STATUS[s].label}
                 </span>
                 {r.success && Number(r.data.Applied) > 0 && <p className="text-[11.5px] text-ink-3 mt-1">of {num(r.data.Applied)} applied</p>}
+                {s === "closed" && <p className="text-[11.5px] text-ink-3 mt-1">Checker closed</p>}
                 {s === "error" && <p className="text-[11.5px] text-ink-3 mt-1 max-w-[160px] truncate" title={r.error}>{r.error}</p>}
               </div>
             </li>

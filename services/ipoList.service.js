@@ -14,13 +14,44 @@ let ipoFetchInProgress = null;
 const lastGoodLists = new Map();
 const registrarStatus = new Map();
 
+// IPOs a registrar has dropped from its list ("retired"). They stay selectable for a while, answered from
+// the result archive (lib/resultArchive.js), since the registrar no longer has the data.
+const RETIRED_KEY = "retiredIpos";
+const RETIRED_KEEP_MS = 120 * 864e5;
+const MAX_RETIRED_AT_ONCE = 15;          // more vanishing at once means a broken page, not retirements
+let retiredIpos = new Map();             // identity -> ipo (with retired: true, retiredAt)
+
 function ipoIdentity(ipo) { return `${ipo.source}:${ipo.clientId}`; }
 
-async function loadLastGoodLists() {
+async function loadSavedLists() {
   await Promise.all(registrars.map(async r => {
     const saved = await storeLib.store().getConfig(`lastList:${r.id}`).catch(() => null);
     if (Array.isArray(saved) && saved.length) lastGoodLists.set(r.id, saved);
   }));
+  const retired = await storeLib.store().getConfig(RETIRED_KEY).catch(() => null);
+  if (Array.isArray(retired)) retiredIpos = new Map(retired.map(ipo => [ipoIdentity(ipo), ipo]));
+}
+
+function trackRetirements(registrar, previous, current) {
+  const now = Date.now();
+  const listed = new Set(current.map(ipoIdentity));
+  const dropped = (previous || []).filter(ipo => !listed.has(ipoIdentity(ipo)));
+  let changed = false;
+
+  if (dropped.length > MAX_RETIRED_AT_ONCE) {
+    console.warn(`[${registrar.tag}] ${dropped.length} IPOs vanished at once - not treated as retired`);
+  } else {
+    for (const ipo of dropped) {
+      retiredIpos.set(ipoIdentity(ipo), { ...ipo, retired: true, retiredAt: now });
+      console.log(`[ALLOTMENTS] Retired: ${ipo.name}`);
+      changed = true;
+    }
+  }
+  for (const id of listed) if (retiredIpos.delete(id)) changed = true;
+  for (const [id, ipo] of retiredIpos) {
+    if (now - ipo.retiredAt > RETIRED_KEEP_MS) { retiredIpos.delete(id); changed = true; }
+  }
+  if (changed) storeLib.store().setConfig(RETIRED_KEY, [...retiredIpos.values()]).catch(() => {});
 }
 
 async function fetchRegistrarIpos(registrar) {
@@ -38,6 +69,7 @@ async function fetchRegistrarIpos(registrar) {
     if (registrar.sortById) ipos.sort((a, b) => (parseInt(b.clientId, 10) || 0) - (parseInt(a.clientId, 10) || 0));
     const previous = lastGoodLists.get(registrar.id);
     lastGoodLists.set(registrar.id, ipos);
+    trackRetirements(registrar, previous, ipos);
     if (!previous || previous.map(ipoIdentity).join() !== ipos.map(ipoIdentity).join()) {
       storeLib.store().setConfig(`lastList:${registrar.id}`, ipos).catch(() => {});
     }
@@ -113,6 +145,14 @@ async function fetchLiveIpoList(forceRefresh = false) {
         return registrarOrder.get(a.source) - registrarOrder.get(b.source);
       });
 
+      // Retired IPOs go last, most recently retired first
+      const listed = new Set(merged.map(ipoIdentity));
+      const retired = [...retiredIpos.values()]
+        .filter(ipo => !listed.has(ipoIdentity(ipo)))
+        .sort((a, b) => b.retiredAt - a.retiredAt)
+        .map(ipo => ({ ...ipo, allotmentDate: allotmentDates(ipo.name), discoveredAt: allotments.firstSeen(ipo), isNew: false }));
+      merged.push(...retired);
+
       if (merged.length === 0 && ipoCache.data) return ipoCache.data;
       ipoCache = { data: merged, fetchedAt: Date.now() };
 
@@ -132,4 +172,4 @@ async function fetchLiveIpoList(forceRefresh = false) {
 
 const getRegistrarStatus = id => registrarStatus.get(id) || null;
 
-module.exports = { fetchLiveIpoList, loadLastGoodLists, getRegistrarStatus, ipoIdentity };
+module.exports = { fetchLiveIpoList, loadSavedLists, getRegistrarStatus, ipoIdentity };
