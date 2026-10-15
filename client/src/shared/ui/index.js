@@ -11,3 +11,4 @@ export { Chip, StageChip, TypeChip, SubChip, GainChip, subTone } from "./Chip.js
 export { CompanyLogo } from "./CompanyLogo.jsx";
 export { Sparkline, LineChart, SubscriptionBars, SubMeter } from "./Charts.jsx";
 export { Confetti } from "./Confetti.jsx";
+export { LogoMark } from "./LogoMark.jsx";

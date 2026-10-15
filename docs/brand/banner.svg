@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" font-family="'Plus Jakarta Sans','Segoe UI','Helvetica Neue',Helvetica,Arial,sans-serif">
+  <defs>
+    <radialGradient id="glow" cx="0.82" cy="0.18" r="0.7">
+      <stop offset="0" stop-color="#34D399" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#FFFFFF" stroke-opacity=".045"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="400" rx="28" fill="#0F1638"/>
+  <rect width="1280" height="400" rx="28" fill="url(#grid)"/>
+  <rect width="1280" height="400" rx="28" fill="url(#glow)"/>
+
+  <!-- Mark (same geometry as client/public/logo.svg, tile omitted) -->
+  <g transform="translate(96 88) scale(0.44)">
+    <rect width="512" height="512" rx="112" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12" stroke-width="3"/>
+    <g transform="translate(11 6)">
+      <path d="M377 292.5 A144 144 0 1 0 284.5 385 L399.8 407.8 Z M336 248 A96 96 0 1 0 144 248 A96 96 0 1 0 336 248 Z" fill="#FFFFFF" fill-rule="evenodd" stroke="#FFFFFF" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M190 252 L228 290 L294 216" fill="none" stroke="#34D399" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <text x="354" y="176" fill="#FFFFFF" font-size="96" font-weight="800" letter-spacing="-3">Qasid</text>
+  <text x="358" y="226" fill="#C7CDEB" font-size="28" font-weight="500">Your messenger for Indian IPOs.</text>
+  <text x="358" y="264" fill="#8E97C4" font-size="20" font-weight="500">Live GMP · subscription · smart planner · instant allotment across 10 registrars</text>
+
+  <g font-size="17" font-weight="700">
+    <rect x="358" y="300" width="148" height="40" rx="20" fill="#34D399" fill-opacity=".14" stroke="#34D399" stroke-opacity=".45"/>
+    <text x="432" y="326" fill="#6EE7B7" text-anchor="middle">10 registrars</text>
+    <rect x="518" y="300" width="118" height="40" rx="20" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <text x="577" y="326" fill="#E2E6F8" text-anchor="middle">Live GMP</text>
+    <rect x="648" y="300" width="130" height="40" rx="20" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <text x="713" y="326" fill="#E2E6F8" text-anchor="middle">IPO planner</text>
+    <rect x="790" y="300" width="132" height="40" rx="20" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <text x="856" y="326" fill="#E2E6F8" text-anchor="middle">Push alerts</text>
+    <rect x="934" y="300" width="148" height="40" rx="20" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".16"/>
+    <text x="1008" y="326" fill="#E2E6F8" text-anchor="middle">Installable PWA</text>
+  </g>
+</svg>

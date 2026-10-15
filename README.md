@@ -1,95 +1,174 @@
-# Qasid 🚀
+<div align="center">
 
-**Qasid** is an all-in-one Indian IPO app: bulk allotment checking across **10 registrars** plus a live **IPO dashboard** with upcoming/open/listed IPOs, price bands, dates, live category-wise subscription, GMP, RHP links and fresh DRHP filings — all scraped live, no paid APIs.
+<img src="docs/brand/banner.svg" alt="Qasid: your messenger for Indian IPOs" width="100%" />
 
-## ✨ Features
+<br />
 
-### Allotment checker
-* **10 registrars, one screen:** KFintech, MUFG (Link Intime), Bigshare, Skyline Financial, Purva Sharegistry, Maashitla, Integrated Registry, Satellite Corporate, Accurate Securities and MAS Services.
-* **Bulk PAN checking:** up to 50 PANs per check, run in parallel per registrar.
-* **Bigshare multi-server failover:** Bigshare's three mirrors (`ipo`, `ipo1`, `ipo2`) are merged so a new allotment published on any one of them shows up, and every lookup fails over to the next server on errors, timeouts or rate limits (`RATELIMIT` / `WARMING` / 429 / 503), with per-server cooldowns.
-* **Multiple applications per PAN** are summed (applied + allotted shares).
-* **Saved PANs with nicknames** (stored only in the browser), pick which PANs to check, one-off PAN checks, copy results / download CSV.
-* **New-allotment push notifications** (Expo) — polled every minute in the evening (IST), every 5 minutes otherwise.
+**Live GMP, subscription, a smart IPO planner and instant allotment results across 10 registrars, all on one screen.**
 
-### Home
-* Live market snapshot: open now, closing today, upcoming, allotment today, listing today.
-* Today's events strip, **one-tap allotment check** for the latest published allotments, open IPOs, upcoming calendar, **Top GMP** ranking and **recent listing gains**.
+<a href="https://qasid.thevellora.co.in"><img alt="Open the app" src="https://img.shields.io/badge/Open%20Qasid-0F1638?style=for-the-badge&logoColor=white" /></a>
+&nbsp;
+<img alt="Installable PWA" src="https://img.shields.io/badge/Installable-PWA-34D399?style=for-the-badge" />
 
-### IPO dashboard
-* **Open / Upcoming / Closed / Listed / Watchlist / DRHP filed** tabs, Mainboard and SME filters, search, and sorting by GMP %, subscription, issue size or listing gain.
-* Colourful cards with company logos, price band, lot, minimum investment, **GMP with estimated listing price and profit per lot**, colour-coded subscription and countdowns ("Closes tomorrow").
-* IPO detail with shareable links (`#/ipo/SYMBOL`) and tabs:
-  * **Overview:** key facts, applications count, timeline stepper, fresh issue vs OFS split, registrar and lead managers.
-  * **Allotment:** check saved PANs right inside the IPO once allotment is out.
-  * **GMP:** current GMP, expected gain, estimated listing price and profit, **GMP trend chart**.
-  * **Subscription:** live category bars (QIB, NII, bNII, sNII, Retail, Employee), **day-wise subscription**.
-  * **Calculator:** retail/sHNI/bHNI lot table and a lot calculator with estimated profit.
-  * **Documents:** RHP, anchor allocation, basis of issue price, plus links to broker apps to apply.
-* Data refreshes every minute; the IPO detail refreshes subscription every 90 seconds.
+<img alt="Node.js" src="https://img.shields.io/badge/Node.js-Express%205-339933?logo=nodedotjs&logoColor=white" />
+<img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" />
+<img alt="Vite" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white" />
+<img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white" />
+<img alt="Private API" src="https://img.shields.io/badge/API-private-0F1638" />
 
-### IPO planner
-* **Overlap calendar:** every open/upcoming IPO on a day-by-day timeline — bidding window, money-blocked days, allotment and listing — with a count of IPOs open each day and the plan's blocked money per day against your budget.
-* **Smart priority score (0–100)** with a verdict (Strong apply / Apply / Consider / Avoid) and the reasons behind it: GMP and expected listing gain, projected final demand and allotment chance, expected profit per ₹1 lakh blocked, GMP trend, QIB demand and SME risk.
-* **Budget optimiser:** enter your budget, number of PANs, category (Retail / Small HNI) and SME preference; Qasid picks the IPOs and number of applications that fit, applying on each IPO's last day so money unblocked from one allotment is recycled into the next. Shows peak money blocked and expected profit.
+</div>
 
-### Alerts & PANs
-* **Watchlist (★)** with browser notifications when a watched IPO opens, closes or lists.
-* **Auto-check:** when a watched IPO's allotment is published, every selected PAN is checked automatically and you're notified of the result.
-* Saved PANs with nicknames, coloured avatars, masking, export, and **per-PAN allotment history** (allotments won, shares received).
-* Results with confetti for allotted PANs, WhatsApp share, copy and CSV export; recent checks list.
-* Light and dark themes, mobile bottom navigation.
+---
 
-## 🛠️ Tech stack
-* **Backend:** Node.js, Express, Axios
-* **Frontend:** React 19 + Vite + Tailwind CSS 4 (`client/`), served from `client/dist` when built
+> *Qasid* (قاصد) means **messenger**. The logo is a **Q** shaped like a message bubble with a tick inside: the message every IPO applicant is waiting for, *"you got the allotment."*
 
-```
-server.js               Express app, auth, caching, push monitor, routes
-lib/http.js             Shared HTTP helpers (browser headers, cookie jar, concurrency)
-lib/html.js             Generic HTML result-table parser
-lib/market.js           IPO calendar / subscription / GMP / SEBI filings aggregation
-lib/history.js          Daily GMP + subscription snapshots (data/history.json) for trends
-lib/registrars/*.js     One module per registrar: listIpos() + checkPan()
-client/src/modules/     home, market, allotment, pans, alerts (controller + views each)
-```
+<div align="center">
+  <img src="docs/screenshots/home-dark.png" alt="Qasid home: today's IPO market" width="100%" />
+</div>
 
-### Data sources
+## ✨ What it does
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ✅ Allotment checker
+- **10 registrars in one place:** KFintech, MUFG (Link Intime), Bigshare, Skyline, Purva, Maashitla, Integrated, Satellite, Accurate and MAS.
+- **Bulk PAN checks:** up to 50 PANs at once, run in parallel.
+- **Bigshare failover** across all three mirrors, with per-server cooldowns.
+- Saved PANs with nicknames, kept **only in your browser**.
+- Multiple applications per PAN are added together. Results come with confetti, CSV export and WhatsApp sharing.
+
+</td>
+<td width="50%" valign="top">
+
+### 📈 IPO dashboard
+- **Open / Upcoming / Closed / Listed / Watchlist / DRHP** tabs, with Mainboard and SME filters.
+- **GMP** with estimated listing price and profit per lot, plus a **GMP trend chart**.
+- **Live category-wise subscription** (QIB, NII, bNII, sNII, Retail) and day-wise history.
+- Lot calculator, timeline, RHP and anchor documents.
+- Shareable links such as `#/ipo/SYMBOL`.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🗓️ IPO planner
+- **Overlap calendar:** bidding windows, blocked money, allotment and listing dates, day by day.
+- **Priority score (0–100)** with a verdict (*Strong apply → Avoid*) and the reasons behind it.
+- **Budget optimiser:** picks the IPOs and how many applications fit your budget, and reuses money as it is unblocked.
+
+</td>
+<td width="50%" valign="top">
+
+### 🔔 Alerts
+- **Push notifications** on phone and desktop when a new allotment is out, even with the app closed.
+- **Auto-check:** your saved PANs are checked on the device as soon as the result is published.
+- ★ Watchlist alerts when an IPO opens, closes or lists.
+- Install it to your home screen like a native app.
+
+</td>
+</tr>
+</table>
+
+## 📸 Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/ipos.png" alt="IPO dashboard" /><p align="center"><sub><b>IPO dashboard</b>: GMP, subscription and countdowns</sub></p></td>
+<td width="50%"><img src="docs/screenshots/planner.png" alt="IPO planner" /><p align="center"><sub><b>IPO planner</b>: budget plan and expected profit</sub></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/allotment.png" alt="Allotment checker" /><p align="center"><sub><b>Allotment checker</b>: 10 registrars, live status</sub></p></td>
+<td width="50%"><img src="docs/screenshots/home-light.png" alt="Light theme" /><p align="center"><sub><b>Light theme</b></sub></p></td>
+</tr>
+</table>
+
+<div align="center">
+  <img src="docs/screenshots/mobile-home.png" alt="Mobile home" width="30%" />
+  &nbsp;
+  <img src="docs/screenshots/mobile-ipos-light.png" alt="Mobile IPO list" width="30%" />
+  &nbsp;
+  <img src="docs/screenshots/mobile-ipo-light.png" alt="Mobile IPO detail" width="30%" />
+  <p><sub>Built mobile-first, with bottom navigation, a planner calendar and an installable PWA</sub></p>
+</div>
+
+## 🔒 API access
+
+The Qasid API is **private**. It serves only the Qasid website and the Qasid app, and isn't open for public or third-party use.
+
+- Browser requests need a signed, `HttpOnly` session cookie that is issued when the site loads, **and** a request from Qasid's own origin. A spoofed `Origin` header from a script is rejected.
+- The mobile app signs every request with HMAC-SHA256 (`x-timestamp` + `x-signature`).
+- All endpoints are rate limited per IP and per session. PAN checks have their own tighter budget, because each PAN is a live lookup on a registrar.
+
+> 💬 **Want API access** for a project, a bot or research? Please [open an issue](https://github.com/shahnavazpathan/Qasid/issues/new?title=API%20access%20request) or reach out to [@shahnavazpathan](https://github.com/shahnavazpathan) and describe what you're building.
+
+## 🧭 Data sources
+
 | Data | Source | Backup |
 |---|---|---|
 | Allotment | Each registrar's public allotment page | — |
-| IPO calendar, GMP, SME subscription, allotment & listing dates | Investorgain | Chittorgarh |
-| Logos, applications count, fresh/OFS split | Chittorgarh | — |
+| IPO calendar, GMP, SME subscription, allotment and listing dates | Investorgain | Chittorgarh |
+| Logos, application count, fresh issue / OFS split | Chittorgarh | — |
 | Symbols, price band, lot, RHP, live mainboard subscription | NSE India | Chittorgarh / Investorgain |
 | DRHP / RHP filings | SEBI | — |
-| GMP trend, day-wise subscription | Recorded by Qasid from the above | — |
+| GMP trend, day-wise subscription | Recorded by Qasid from the sources above | — |
 
-### Adding a registrar
-Create `lib/registrars/<name>.js` exporting `{ id, tag, label, website, concurrency, listIpos, checkPan }` and add it to `lib/registrars/index.js`. `checkPan(ipo, pan)` returns `{ status: "found" | "not_applied" | "error", name, applied, allotted, applications }`.
+## 🛠️ Tech stack
 
-## 🔌 API
-| Method | Route | Description |
-|---|---|---|
-| GET | `/api/ipos` | IPOs with allotment out, all registrars |
-| POST | `/api/check` | `{ clientId, source?, pans[] }` → allotment per PAN |
-| GET | `/api/registrars` | Registrar health (+ Bigshare server status) |
-| GET | `/api/market` | Open / upcoming / closed / listed IPO board (`?refresh=1` to bypass cache) |
-| GET | `/api/market/ipo/:symbol?type=SME` | IPO detail + live subscription |
-| GET | `/api/market/drhp` | Latest SEBI DRHP filings |
-| POST | `/api/register-token` | Register an Expo push token |
+| Layer | Stack |
+|---|---|
+| Backend | Node.js, Express 5, Axios, web-push, MongoDB (file store in development) |
+| Frontend | React 19, Vite 6, Tailwind CSS 4, a service worker for offline use and push |
+| Hosting | Render, which serves the built `client/dist` |
 
-Extra allowed browser origins can be added with `EXTRA_ORIGINS` (comma-separated). Requests from non-whitelisted origins must be signed with `x-timestamp` and `x-signature` (HMAC-SHA256 of `timestamp + path + body` using `SECRET_API_KEY`).
+```
+server.js               Express app, caching, allotment monitor, routes
+lib/auth.js             API gate: session cookie, HMAC signatures, rate limits
+lib/registrars/*.js     One module per registrar: listIpos() + checkPan()
+lib/market.js           IPO calendar / subscription / GMP / SEBI filings
+lib/history.js          Daily GMP and subscription snapshots for trends
+lib/push.js, store.js   Web push and Expo notifications, subscriber store
+client/src/modules/     home, market, planner, allotment, pans, alerts
+client/public/          logo, icons, manifest, service worker
+```
 
-## 🚀 Getting started
+## 🚀 Running locally
+
 ```bash
 git clone https://github.com/shahnavazpathan/Qasid.git
 cd Qasid
 npm install
-npm --prefix client install
-npm --prefix client run build
-echo "SECRET_API_KEY=your-secret" > .env
-npm start
+npm run build        # installs and builds the React client into client/dist
+npm start            # http://localhost:3000
 ```
-Open http://localhost:3000. For frontend development run `npm --prefix client run dev` (Vite on :5173, proxying `/api` to :3000).
 
-> Data is fetched live from public registrar, exchange and SEBI pages and may change without notice. GMP is unofficial and indicative only. Not investment advice.
+For frontend work, run `npm run dev:client`. Vite starts on `:5173` and forwards `/api` to `:3000`. Local development on `localhost` works without any keys.
+
+<details>
+<summary><b>Environment variables</b> (production)</summary>
+
+| Variable | Purpose |
+|---|---|
+| `SECRET_API_KEY` | Signs session cookies and verifies requests from the mobile app |
+| `MONGODB_URI`, `MONGODB_DB` | Subscriber store, so subscriptions survive redeploys |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push keys |
+| `EXTRA_ORIGINS` | More allowed site origins, separated by commas |
+| `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |
+
+</details>
+
+<details>
+<summary><b>Adding a registrar</b></summary>
+
+Create `lib/registrars/<name>.js` that exports `{ id, tag, label, website, concurrency, listIpos, checkPan }`, then register it in `lib/registrars/index.js`.
+`checkPan(ipo, pan)` returns `{ status: "found" | "not_applied" | "error", name, applied, allotted, applications }`.
+
+</details>
+
+---
+
+<div align="center">
+<sub>Data is fetched live from public registrar, exchange and SEBI pages and may change without notice. GMP is unofficial and only indicative. <b>Qasid is not investment advice.</b></sub>
+</div>

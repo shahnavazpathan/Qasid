@@ -1,12 +1,13 @@
 const express = require("express");
-const axios = require("axios");
 const path = require("path");
 require("dotenv").config();
-const crypto = require("crypto");
 const cors = require("cors");
+const { createAuth, rateLimit } = require("./lib/auth");
 const { registrars, getRegistrar } = require("./lib/registrars");
 const { mapWithConcurrency } = require("./lib/http");
 const market = require("./lib/market");
+const storeLib = require("./lib/store");
+const push = require("./lib/push");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,72 +15,89 @@ const PORT = process.env.PORT || 3000;
 /* =========================================================
    EXPRESS + AUTH
 ========================================================= */
-app.use(cors());
-app.use(express.json());
-
 const SECRET_API_KEY = process.env.SECRET_API_KEY;
-const pushTokens = new Set();
 
 const ALLOWED_WEB_DOMAINS = [
   "https://qasid.thevellora.co.in",
   "https://ipo.thevellora.co.in",
   "https://qasid-x637.onrender.com",
-  "http://localhost:3000",
-  "http://localhost:8081",
-  "http://localhost:5173",
-  // Extra dev/preview origins, comma-separated (e.g. EXTRA_ORIGINS=http://localhost:3100)
+  // Extra deployed/preview origins, comma-separated (e.g. EXTRA_ORIGINS=https://staging.example.com)
   ...(process.env.EXTRA_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean)
 ];
 
-const ALLOWED_ORIGINS = new Set(ALLOWED_WEB_DOMAINS.map(d => d.replace(/\/+$/, "")));
+// Behind Render's proxy: take the client IP from X-Forwarded-For (one hop). Set TRUST_PROXY=0 when exposed directly.
+app.set("trust proxy", process.env.TRUST_PROXY === undefined ? 1 : Number(process.env.TRUST_PROXY) || false);
 
-// Exact origin of a header URL ("https://site/path?x" -> "https://site"); null if unparseable.
-// Exact matching matters: a prefix check would also accept "https://qasid.thevellora.co.in.evil.com".
-function originOf(value) {
-  try { return new URL(value).origin; } catch { return null; }
-}
+const auth = createAuth({ secret: SECRET_API_KEY, allowedOrigins: ALLOWED_WEB_DOMAINS });
+app.use(cors(auth.corsOptions()));
+app.use(express.json({ limit: "20kb" }));
+app.use(auth.sessionIssuer);
+app.use(auth.apiGuard);
+// Per IP (loose: shared mobile IPs) and per browser session (tight)
+const bySession = req => req.clientKey;
+const panCount = req => (Array.isArray(req.body?.pans) ? req.body.pans.length : 1);
+const tooManyChecks = "Too many PAN checks. Please try again in a few minutes.";
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 600 }));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, max: 120, key: bySession }));
+// Each PAN is a live registrar lookup: budget PANs, not just requests
+app.use("/api/check", rateLimit({ windowMs: 10 * 60 * 1000, max: 2000, cost: panCount, message: tooManyChecks }));
+app.use("/api/check", rateLimit({ windowMs: 10 * 60 * 1000, max: 300, key: bySession, cost: panCount, message: tooManyChecks }));
+app.use("/api/push/test", rateLimit({ windowMs: 10 * 60 * 1000, max: 5, key: bySession }));
 
-function isAllowedBrowserRequest(req) {
-  if (req.headers.origin) return ALLOWED_ORIGINS.has(originOf(req.headers.origin));
-  if (req.headers.referer) return ALLOWED_ORIGINS.has(originOf(req.headers.referer));
-  return false;
-}
-
-function signatureMatches(signature, expected) {
-  const a = Buffer.from(String(signature), "utf8");
-  const b = Buffer.from(expected, "utf8");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-app.use((req, res, next) => {
-  if (!req.path.startsWith("/api/")) return next();
-
-  // Our own web app (browser sends Origin/Referer). The Host header is NOT trusted: every request
-  // to the deployed domain carries it, which previously let anyone skip signature checks.
-  if (isAllowedBrowserRequest(req)) return next();
-
-  const signature = req.headers["x-signature"];
-  const timestamp = req.headers["x-timestamp"];
-
-  if (!signature || !timestamp) return res.status(403).json({ error: "Unauthorized: Missing signature" });
-  if (!SECRET_API_KEY) return res.status(500).json({ error: "Server misconfigured: SECRET_API_KEY not set" });
-
-  const ts = parseInt(timestamp, 10);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > 120000) return res.status(403).json({ error: "Request expired" });
-
-  const bodyString = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : "";
-  const payload = timestamp + req.path + bodyString;
-
-  const expectedSignature = crypto.createHmac("sha256", SECRET_API_KEY).update(payload).digest("hex");
-  if (!signatureMatches(signature, expectedSignature)) return res.status(403).json({ error: "Unauthorized: Invalid signature" });
-
-  next();
+// Expo push token from the mobile app (persisted, survives restarts/redeploys)
+app.post("/api/register-token", async (req, res) => {
+  const token = String(req.body?.token || "");
+  if (!/^(Expo|Exponent)PushToken\[[^\]]{10,200}\]$/.test(token)) return res.status(400).json({ success: false, error: "Invalid token." });
+  try {
+    await storeLib.store().addExpoToken(token);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[PUSH] register-token:", err.message);
+    res.status(500).json({ success: false, error: "Could not save token." });
+  }
 });
 
-app.post("/api/register-token", (req, res) => {
-  const { token } = req.body;
-  if (token) pushTokens.add(token);
+/* ---------- Web Push (installed PWA) ---------- */
+function validSubscription(sub) {
+  return sub && typeof sub.endpoint === "string" && /^https:\/\//.test(sub.endpoint) && sub.endpoint.length < 1000 &&
+    sub.keys && typeof sub.keys.p256dh === "string" && typeof sub.keys.auth === "string" &&
+    sub.keys.p256dh.length < 200 && sub.keys.auth.length < 100;
+}
+
+app.get("/api/push/public-key", (req, res) => {
+  const key = push.getPublicKey();
+  if (!key) return res.status(503).json({ success: false, error: "Push not ready." });
+  res.json({ success: true, publicKey: key });
+});
+
+app.post("/api/push/subscribe", async (req, res) => {
+  const sub = req.body?.subscription;
+  if (!validSubscription(sub)) return res.status(400).json({ success: false, error: "Invalid subscription." });
+  const platform = String(req.body?.platform || "").slice(0, 20);
+  try {
+    await storeLib.store().upsertWebSub({ endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } }, { platform });
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[PUSH] subscribe:", err.message);
+    res.status(500).json({ success: false, error: "Could not save subscription." });
+  }
+});
+
+app.post("/api/push/unsubscribe", async (req, res) => {
+  const endpoint = String(req.body?.endpoint || "");
+  if (!endpoint) return res.status(400).json({ success: false, error: "Missing endpoint." });
+  await storeLib.store().removeWebSub(endpoint).catch(() => {});
   res.json({ success: true });
+});
+
+// Lets a user confirm alerts work on their device; only sends to the caller's own subscription
+app.post("/api/push/test", async (req, res) => {
+  const sub = req.body?.subscription;
+  if (!validSubscription(sub)) return res.status(400).json({ success: false, error: "Invalid subscription." });
+  const result = await push.sendWebPush([sub], {
+    type: "test", title: "Qasid alerts are on ✅", body: "You'll get a notification here the moment a new IPO allotment is out.", url: "/#/home", tag: "qasid-test"
+  });
+  res.json({ success: result.sent === 1, error: result.sent ? undefined : "Couldn't reach this device." });
 });
 
 // Serve the React build (client/dist) when present; fall back to the legacy static UI
@@ -249,29 +267,43 @@ async function checkOnePan(ipo, registrar, rawPan) {
 /* =========================================================
    BACKGROUND IPO MONITOR (push notifications)
 ========================================================= */
-let previousIpoSnapshot = null;
+// Every allotment ever seen (persisted), so a restart/redeploy neither misses nor re-announces allotments.
+// It only ever grows: a registrar that is briefly down doesn't make its IPOs look "new" when it returns.
+let knownAllotments = null;
+const KNOWN_LIMIT = 5000;
+// More "new" allotments than this in one pass means a registrar changed its IDs/format, not real news
+const MAX_NEW_PER_RUN = 8;
 
 async function runIpoMonitor() {
   try {
-    const newIpos = await fetchLiveIpoList(true);
-    if (!previousIpoSnapshot) {
-      previousIpoSnapshot = new Set(newIpos.map(ipoIdentity));
-      return;
+    const current = await fetchLiveIpoList(true);
+    if (!knownAllotments) {
+      const saved = await storeLib.store().getConfig("knownAllotments");
+      if (!saved) {
+        knownAllotments = new Set(current.map(ipoIdentity));
+        await storeLib.store().setConfig("knownAllotments", [...knownAllotments]);
+        console.log(`[IPO MONITOR] Seeded ${knownAllotments.size} known allotments`);
+        return;
+      }
+      knownAllotments = new Set(saved);
     }
 
-    const addedIpos = newIpos.filter(ipo => !previousIpoSnapshot.has(ipoIdentity(ipo)));
-    for (const ipo of addedIpos) {
-      console.log(`[IPO MONITOR] New allotment: ${ipo.name}`);
-      const messages = [...pushTokens].map(token => ({
-        to: token, sound: "default", title: "New IPO Allotment Out! 🎉", body: `${ipo.name} allotment is now available.`
-      }));
-      if (messages.length > 0) {
-        axios.post("https://exp.host/--/api/v2/push/send", messages)
-          .then(() => console.log(`[PUSH] Sent notifications for ${ipo.name} to ${messages.length} devices.`))
-          .catch(err => console.error("[PUSH] Failed to send:", err.message));
-      }
+    const added = current.filter(ipo => !knownAllotments.has(ipoIdentity(ipo)));
+    if (added.length === 0) return;
+
+    added.forEach(ipo => knownAllotments.add(ipoIdentity(ipo)));
+    const list = [...knownAllotments];
+    knownAllotments = new Set(list.slice(Math.max(0, list.length - KNOWN_LIMIT)));
+    await storeLib.store().setConfig("knownAllotments", [...knownAllotments]);
+
+    if (added.length > MAX_NEW_PER_RUN) {
+      console.warn(`[IPO MONITOR] ${added.length} new at once - treating as a registrar format change, not notifying`);
+      return;
     }
-    previousIpoSnapshot = new Set(newIpos.map(ipoIdentity));
+    for (const ipo of added) {
+      console.log(`[IPO MONITOR] New allotment: ${ipo.name}`);
+      await push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
+    }
   } catch (error) {
     console.error("[IPO MONITOR] Error:", error.message);
   }
@@ -396,5 +428,7 @@ app.listen(PORT, async () => {
   console.log(`  QASID - IPO CHECKER (${registrars.map(r => r.tag).join("/")})`);
   console.log("==================================================");
   console.log(`  Open: http://localhost:${PORT}`);
+  await storeLib.init();
+  await push.initPush();
   await startIpoMonitor();
 });

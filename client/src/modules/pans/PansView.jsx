@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Empty, Icon, useToast } from "../../shared/ui/index.js";
 import { num } from "../../shared/lib/format.js";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
-import { useAlerts } from "../alerts/alerts.controller.jsx";
+import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
 import { usePans } from "./pans.controller.jsx";
 import { maskPan, PanAdder, PanAvatar } from "./PanList.jsx";
 
@@ -11,42 +11,6 @@ const OUTCOME = {
   "not-allotted": "bg-loss-soft text-loss",
   "not-applied": "bg-raised text-ink-3"
 };
-
-function Toggle({ on, onChange, label }) {
-  return (
-    <button role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} className={`relative w-12 h-7 rounded-full transition-colors ${on ? "bg-open" : "bg-line"}`}>
-      <span className={`absolute top-1 size-5 rounded-full bg-white shadow transition-all ${on ? "left-6" : "left-1"}`} />
-    </button>
-  );
-}
-
-function AlertSettings() {
-  const { notificationsOn, permission, enableNotifications, autoCheck, setAutoCheck, watchlist } = useAlerts();
-  return (
-    <section className="card p-5">
-      <h2 className="font-bold text-[16px] flex items-center gap-2"><Icon name="bell" className="size-5 text-brand" />Alerts</h2>
-      <ul className="mt-4 space-y-4">
-        <li className="flex items-center gap-4">
-          <div className="flex-1">
-            <p className="font-semibold text-[14px]">Browser notifications</p>
-            <p className="text-[12.5px] text-ink-3">IPO opens, closes, lists, and allotment out — for your watchlist ({watchlist.length})</p>
-          </div>
-          {permission === "unsupported" ? <span className="text-[12px] text-ink-3">Not supported</span>
-            : notificationsOn ? <span className="h-7 px-2.5 rounded-full bg-open-soft text-open text-[12px] font-bold grid place-items-center">On</span>
-            : <Button variant="soft" size="sm" onClick={enableNotifications}>Turn on</Button>}
-        </li>
-        <li className="flex items-center gap-4">
-          <div className="flex-1">
-            <p className="font-semibold text-[14px]">Auto-check allotment</p>
-            <p className="text-[12.5px] text-ink-3">When a watched IPO's allotment comes out, check your selected PANs automatically</p>
-          </div>
-          <Toggle on={autoCheck} onChange={setAutoCheck} label="Auto-check allotment" />
-        </li>
-      </ul>
-      <p className="mt-4 text-[12px] text-ink-3">Alerts work while Qasid is open in a tab. Tip: tap ★ on any IPO to watch it.</p>
-    </section>
-  );
-}
 
 export function PansView() {
   const { pans, remove, history } = usePans();
@@ -147,7 +111,7 @@ export function PansView() {
             </section>
           )}
         </div>
-        <AlertSettings />
+        <AlertsSetup />
       </div>
     </div>
   );

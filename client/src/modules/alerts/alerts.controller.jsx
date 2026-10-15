@@ -1,15 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { displayName, normName } from "../../shared/lib/names.js";
+import { idbSet } from "../../shared/lib/idb.js";
 import { useToast } from "../../shared/ui/index.js";
 import { useMarket } from "../market/market.controller.jsx";
 import { useAllotment } from "../allotment/allotment.controller.jsx";
 import { usePans } from "../pans/pans.controller.jsx";
+import { disablePush, enablePush, isIos, isStandalone, pushStatus, sendTestPush, syncPush } from "./push.js";
 
 const AlertsContext = createContext(null);
 export const useAlerts = () => useContext(AlertsContext);
 
-const supported = typeof window !== "undefined" && "Notification" in window;
 const watchKey = name => normName(name);
 
 const EVENT_TEXT = {
@@ -25,70 +26,112 @@ export function AlertsProvider({ onOpenAllotment, children }) {
   const { selected: pans } = usePans();
   const [watchlist, setWatchlist] = useStoredState("watchlist", []);
   const [autoCheck, setAutoCheck] = useStoredState("autoCheck", true);
-  const [permission, setPermission] = useState(supported ? Notification.permission : "unsupported");
+  const [push, setPush] = useState("checking");
+  const [busy, setBusy] = useState(false);
+  const [installEvent, setInstallEvent] = useState(null);
+  const [installed, setInstalled] = useState(isStandalone());
   const handledEvents = useRef(null);
   const handledAllotments = useRef(null);
 
+  /* ---------- Push subscription state ---------- */
+  const refreshPush = useCallback(() => pushStatus().then(setPush).catch(() => setPush("unsupported")), []);
+  useEffect(() => {
+    refreshPush();
+    syncPush();
+    const onVisible = () => { if (!document.hidden) refreshPush(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshPush]);
+
+  // Android/desktop Chrome: keep the native install prompt for our own "Install app" button
+  useEffect(() => {
+    const onPrompt = e => { e.preventDefault(); setInstallEvent(e); };
+    const onInstalled = () => { setInstalled(true); setInstallEvent(null); toast("Qasid installed - open it from your home screen", null, "success"); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => { window.removeEventListener("beforeinstallprompt", onPrompt); window.removeEventListener("appinstalled", onInstalled); };
+  }, [toast]);
+
+  const install = useCallback(async () => {
+    if (!installEvent) return false;
+    installEvent.prompt();
+    const choice = await installEvent.userChoice.catch(() => null);
+    setInstallEvent(null);
+    return choice?.outcome === "accepted";
+  }, [installEvent]);
+
+  // The service worker can't read localStorage: mirror what it needs for the on-device allotment check
+  useEffect(() => { idbSet("alertSettings", { autoCheck, pans }); }, [autoCheck, pans]);
+
+  const turnOn = useCallback(async () => {
+    setBusy(true);
+    try {
+      const status = await enablePush();
+      setPush(status);
+      if (status === "on") toast("Allotment alerts are on for this device", null, "success");
+      else if (status === "denied") toast("Notifications are blocked - allow them in your browser or phone settings");
+      return status;
+    } catch (err) {
+      toast(`Couldn't turn on alerts: ${err.message}`);
+      return "off";
+    } finally {
+      setBusy(false);
+    }
+  }, [toast]);
+
+  const turnOff = useCallback(async () => {
+    setBusy(true);
+    try { setPush(await disablePush()); toast("Alerts turned off for this device"); } finally { setBusy(false); }
+  }, [toast]);
+
+  const test = useCallback(async () => {
+    try { await sendTestPush(); toast("Test alert sent - check your notifications", null, "success"); }
+    catch (err) { toast(err.message || "Couldn't send a test alert"); }
+  }, [toast]);
+
+  /* ---------- Watchlist ---------- */
   const isWatched = useCallback(name => watchlist.includes(watchKey(name)), [watchlist]);
   const toggleWatch = useCallback(name => {
     const key = watchKey(name);
     const adding = !watchlist.includes(key);
     setWatchlist(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
-    toast(adding ? `Watching ${displayName(name)} - you'll get alerts` : `Stopped watching ${displayName(name)}`, null, adding ? "success" : "info");
+    toast(adding ? `Watching ${displayName(name)}` : `Stopped watching ${displayName(name)}`, null, adding ? "success" : "info");
   }, [watchlist, setWatchlist, toast]);
 
-  const enableNotifications = useCallback(async () => {
-    if (!supported) return toast("This browser doesn't support notifications");
-    const result = await Notification.requestPermission();
-    setPermission(result);
-    toast(result === "granted" ? "Alerts on for your watchlist" : "Notifications are blocked in browser settings", null, result === "granted" ? "success" : "info");
-  }, [toast]);
-
-  const notify = useCallback((title, body) => {
-    if (permission !== "granted" || !document.hidden) return;
-    try { new Notification(title, { body, icon: "/favicon.svg", tag: title }); } catch {}
-  }, [permission]);
-
-  // IPO stage changes (opened / closed / listed) for watched IPOs
+  // In-app alerts while Qasid is open (push covers the closed-app case)
   useEffect(() => {
     if (handledEvents.current === market.events) return;
     handledEvents.current = market.events;
     for (const e of market.events) {
       if (!isWatched(e.ipo.name) || !EVENT_TEXT[e.type]) continue;
-      const text = EVENT_TEXT[e.type](displayName(e.ipo.name));
-      toast(text, null, "alert");
-      notify("Qasid IPO alert", text);
+      toast(EVENT_TEXT[e.type](displayName(e.ipo.name)), null, "alert");
     }
-  }, [market.events, isWatched, toast, notify]);
+  }, [market.events, isWatched, toast]);
 
-  // Freshly published allotments: auto-check saved PANs, or prompt to check
   useEffect(() => {
     if (handledAllotments.current === allotment.newlyOut) return;
     handledAllotments.current = allotment.newlyOut;
     for (const ipo of allotment.newlyOut) {
       const name = displayName(ipo.name);
-      const relevant = isWatched(ipo.name) || watchlist.length === 0;
-      if (!relevant) continue;
+      const open = () => { allotment.select(ipo); onOpenAllotment(); };
       if (autoCheck && pans.length) {
         allotment.check(ipo, pans).then(({ summary }) => {
-          const text = summary.allotted
+          toast(summary.allotted
             ? `🎉 ${name}: ${summary.allotted} of ${summary.total} PANs allotted (${summary.shares} shares)`
-            : `${name}: allotment out - none of your ${summary.total} PANs got shares`;
-          toast(text, { label: "View", run: () => { allotment.select(ipo); onOpenAllotment(); } }, summary.allotted ? "success" : "alert");
-          notify("Allotment out", text);
+            : `${name}: allotment out - none of your ${summary.total} PANs got shares`,
+          { label: "View", run: open }, summary.allotted ? "success" : "alert");
         }).catch(() => {});
       } else {
-        const text = `${name} allotment is out`;
-        toast(text, { label: "Check", run: () => { allotment.select(ipo); onOpenAllotment(); } }, "alert");
-        notify("Allotment out", text);
+        toast(`${name} allotment is out`, { label: "Check", run: open }, "alert");
       }
     }
-  }, [allotment, autoCheck, pans, isWatched, watchlist.length, toast, notify, onOpenAllotment]);
+  }, [allotment, autoCheck, pans, toast, onOpenAllotment]);
 
   const value = useMemo(() => ({
     watchlist, isWatched, toggleWatch, autoCheck, setAutoCheck,
-    permission, enableNotifications, notificationsOn: permission === "granted"
-  }), [watchlist, isWatched, toggleWatch, autoCheck, setAutoCheck, permission, enableNotifications]);
+    push, busy, turnOn, turnOff, test, notificationsOn: push === "on",
+    canInstall: !!installEvent, install, installed, ios: isIos()
+  }), [watchlist, isWatched, toggleWatch, autoCheck, setAutoCheck, push, busy, turnOn, turnOff, test, installEvent, install, installed]);
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;
 }

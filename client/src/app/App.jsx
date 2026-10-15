@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useHashRoute } from "../shared/hooks/useHashRoute.js";
-import { Icon, SkeletonCards, ThemeToggle, ToastProvider } from "../shared/ui/index.js";
+import { Icon, LogoMark, SkeletonCards, ThemeToggle, ToastProvider } from "../shared/ui/index.js";
 import { PansProvider, PansView, usePans } from "../modules/pans/index.js";
 import { AllotmentProvider, AllotmentView, useAllotment } from "../modules/allotment/index.js";
 import { IpoDetail, ipoId, MarketProvider, MarketView, useMarket } from "../modules/market/index.js";
@@ -20,19 +20,24 @@ const NAV = [
 function Logo() {
   return (
     <a href="#/home" className="flex items-center gap-2.5 shrink-0" aria-label="Qasid home">
-      <span className="size-9 grid place-items-center rounded-xl brand-gradient text-white font-extrabold text-[17px] shadow-[0_6px_16px_-6px_rgb(234_88_12/.7)]">Q</span>
+      <LogoMark size={36} className="rounded-[10px] shadow-[0_6px_16px_-6px_rgb(15_22_56/.55)]" />
       <span className="font-extrabold tracking-tight text-[19px]">Qasid</span>
     </a>
   );
 }
 
 function AlertBell() {
-  const { notificationsOn, enableNotifications, watchlist } = useAlerts();
+  const { notificationsOn, watchlist } = useAlerts();
+  // Opens the alert setup card (install guide / turn on / test)
+  const open = () => {
+    window.location.hash = "/pans";
+    setTimeout(() => document.getElementById("alerts")?.scrollIntoView({ block: "start", behavior: "smooth" }), 150);
+  };
   return (
     <button
-      onClick={notificationsOn ? undefined : enableNotifications}
-      title={notificationsOn ? `Alerts on · watching ${watchlist.length}` : "Turn on IPO alerts"}
-      aria-label="IPO alerts"
+      onClick={open}
+      title={notificationsOn ? `Alerts on · watching ${watchlist.length}` : "Turn on allotment alerts"}
+      aria-label={notificationsOn ? "Allotment alerts on" : "Turn on allotment alerts"}
       className="relative size-10 grid place-items-center rounded-xl text-ink-2 hover:text-ink hover:bg-raised"
     >
       <Icon name={notificationsOn ? "bell" : "bellOff"} className="size-5" />
@@ -76,6 +81,12 @@ function Shell() {
   }, [allotment, go]);
 
   const browse = useCallback(status => { market.setStatus(status); go("ipos"); }, [market, go]);
+
+  useEffect(() => {
+    if (route !== "allotment" || !param) return;
+    const target = allotment.ipos.find(i => `${i.source}:${i.clientId}` === param);
+    if (target) { allotment.select(target); go("allotment"); }
+  }, [route, param, allotment, go]);
 
   // Deep link to an IPO that has since dropped off the board
   useEffect(() => {

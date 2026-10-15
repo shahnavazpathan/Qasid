@@ -7,10 +7,11 @@ import { useMarket } from "../market/market.controller.jsx";
 import { IpoCard, LiveBadge } from "../market/index.js";
 import { ipoKey, useAllotment } from "../allotment/allotment.controller.jsx";
 import { QuickCheck } from "../allotment/QuickCheck.jsx";
+import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
 
 function StatTile({ label, value, icon, tone, onClick }) {
   return (
-    <button onClick={onClick} className="text-left rounded-2xl bg-surface/85 hover:bg-surface ring-1 ring-brand/10 transition-colors p-3.5">
+    <button onClick={onClick} className="snap-start shrink-0 w-[118px] sm:w-auto text-left rounded-2xl bg-surface/85 hover:bg-surface ring-1 ring-brand/10 transition-colors p-3 sm:p-3.5">
       <span className={`size-8 grid place-items-center rounded-xl ${tone}`}><Icon name={icon} className="size-4.5" /></span>
       <p className="mt-2.5 text-[26px] font-extrabold leading-none">{value ?? "–"}</p>
       <p className="mt-1 text-[12px] font-semibold text-ink-2">{label}</p>
@@ -88,16 +89,16 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
 
   return (
     <div>
-      <section className="hero-gradient text-ink rounded-[28px] p-5 sm:p-8 ring-1 ring-brand/15 relative overflow-hidden">
+      <section className="hero-gradient text-ink rounded-[28px] p-5 sm:p-8 ring-1 ring-brand/15 overflow-hidden relative overflow-hidden">
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-ink-2 font-semibold text-[13px]">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
-            <h1 className="mt-1 text-[28px] sm:text-[36px] leading-tight font-extrabold tracking-tight">Today's IPO market</h1>
-            <p className="mt-1 text-ink-2 max-w-md">Live GMP, subscription and allotment status for every mainboard and SME IPO.</p>
+            <h1 className="mt-1 text-[26px] sm:text-[36px] leading-tight font-extrabold tracking-tight">Today's IPO market</h1>
+            <p className="mt-1 text-ink-2 max-w-md text-[14px] sm:text-[15px]">Live GMP, subscription and allotment status for every mainboard and SME IPO.</p>
           </div>
           <LiveBadge />
         </div>
-        <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+        <div className="relative mt-5 sm:mt-6 -mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-5 gap-2.5 overflow-x-auto no-scrollbar snap-x">
           <StatTile label="Open now" value={m.counts.open} icon="bolt" tone="bg-open text-on-brand" onClick={() => onBrowse("open")} />
           <StatTile label="Closing today" value={board ? m.today.closing.length : null} icon="clock" tone="bg-closed text-on-brand" onClick={() => onBrowse("open")} />
           <StatTile label="Upcoming" value={m.counts.upcoming} icon="calendar" tone="bg-upcoming text-on-brand" onClick={() => onBrowse("upcoming")} />
@@ -117,6 +118,8 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
           ))}
         </div>
       )}
+
+      <div className="mt-5"><AlertsSetup compact /></div>
 
       <SectionHead title="Check allotment" icon="check" action="All IPOs" onAction={() => onCheckAllotment(null)} />
       <QuickAllotment />
