@@ -424,7 +424,17 @@ export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
         {tab === "docs" && <DocsTab ipo={ipo} detail={detail} />}
 
         {(ipo.status === "open" || ipo.status === "upcoming") && (
-          <div className="mt-5 card p-5">
+          <a href={`#/planner/${encodeURIComponent(ipoId(ipo))}`} className="mt-5 card p-4 flex items-center gap-3 active:bg-raised">
+            <span className="size-11 shrink-0 grid place-items-center rounded-2xl bg-brand text-on-brand"><Icon name="calendar" className="size-5" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold text-[15px]">Should you apply? See its priority score</span>
+              <span className="block text-[13px] text-ink-3">Compare with overlapping IPOs and plan your budget</span>
+            </span>
+            <Icon name="chevronRight" className="size-5 text-ink-3 shrink-0" />
+          </a>
+        )}
+        {(ipo.status === "open" || ipo.status === "upcoming") && (
+          <div className="mt-3 card p-5">
             <p className="font-bold text-[15px]">Apply through your broker</p>
             <p className="text-[13px] text-ink-3 mt-0.5">UPI mandate via ASBA · bids close {ipo.closeDate ? date(ipo.closeDate, true) : "soon"}</p>
             <div className="mt-3 flex flex-wrap gap-2">

@@ -115,7 +115,7 @@ function Shell() {
           {route === "ipo" && (pageIpo
             ? <IpoDetail key={ipoId(pageIpo)} ipo={pageIpo} onBack={closeIpo} onCheckAllotment={checkAllotment} />
             : <SkeletonCards count={3} />)}
-          {page === "planner" && <PlannerView onOpenIpo={openIpo} />}
+          {page === "planner" && <PlannerView onOpenIpo={openIpo} focusId={param} />}
           {page === "allotment" && <AllotmentView />}
           {page === "pans" && <PansView />}
           <Footer />

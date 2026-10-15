@@ -2,6 +2,7 @@ import { CompanyLogo, GainChip, Icon, Sparkline, StageChip, SubChip, SubMeter, T
 import { date, num, priceBand, rupees } from "../../shared/lib/format.js";
 import { countdown, estimate, minInvestment, STAGES } from "../../shared/lib/ipo.js";
 import { useAlerts } from "../alerts/alerts.controller.jsx";
+import { ipoId } from "./market.controller.jsx";
 
 function Stat({ label, children, className = "" }) {
   return (
@@ -98,8 +99,17 @@ export function IpoCard({ ipo, allotment, onOpen, onCheck }) {
           {when || (ipo.status === "listed" ? `Listed ${date(ipo.listingDate)}` : "—")}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          {(ipo.status === "open" || ipo.status === "upcoming") && !allotment && (
+            <a
+              href={`#/planner/${encodeURIComponent(ipoId(ipo))}`}
+              aria-label={`Plan ${ipo.name} in the IPO planner`}
+              className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg text-[12.5px] font-bold bg-brand-soft text-brand active:brightness-95"
+            >
+              <Icon name="calendar" className="size-4" />Plan
+            </a>
+          )}
           {allotment && (
-            <button onClick={() => onCheck(allotment, ipo)} className="h-8 px-3 rounded-lg text-[12.5px] font-bold bg-gain text-on-brand hover:brightness-110">
+            <button onClick={() => onCheck(allotment, ipo)} className="h-9 px-3 rounded-lg text-[12.5px] font-bold bg-gain text-on-brand hover:brightness-110">
               Check allotment
             </button>
           )}
@@ -107,7 +117,7 @@ export function IpoCard({ ipo, allotment, onOpen, onCheck }) {
             onClick={() => toggleWatch(ipo.name)}
             aria-pressed={watched}
             aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}
-            className={`size-8 grid place-items-center rounded-lg transition-colors ${watched ? "text-closed bg-closed-soft" : "text-ink-3 hover:text-closed hover:bg-raised"}`}
+            className={`size-9 grid place-items-center rounded-lg transition-colors ${watched ? "text-closed bg-closed-soft" : "text-ink-3 hover:text-closed hover:bg-raised"}`}
           >
             <Icon name="star" filled={watched} className="size-4.5" />
           </button>

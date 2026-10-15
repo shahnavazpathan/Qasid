@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CompanyLogo, Empty, Icon, SkeletonCards, Tabs } from "../../shared/ui/index.js";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { date, num } from "../../shared/lib/format.js";
@@ -7,6 +7,8 @@ import { useMarket } from "../market/market.controller.jsx";
 import { usePans } from "../pans/pans.controller.jsx";
 import { analyse, buildPlan, CATEGORIES, VERDICTS } from "./planner.logic.js";
 import { IpoCalendar } from "./IpoCalendar.jsx";
+import { AgendaCalendar } from "./AgendaCalendar.jsx";
+import { ipoId } from "../market/market.controller.jsx";
 
 const rupee = n => `₹${num(Math.round(n))}`;
 const lakh = n => (n >= 100000 ? `₹${(n / 100000).toFixed(n >= 1000000 ? 1 : 2)}L` : rupee(n));
@@ -44,13 +46,17 @@ function Stat({ label, value, tone = "" }) {
   );
 }
 
-function PickCard({ a, row, rank, onOpen }) {
-  const [open, setOpen] = useState(rank <= 2);
+function PickCard({ a, row, rank, onOpen, focused }) {
+  const [open, setOpen] = useState(rank <= 2 || focused);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focused]);
   const v = VERDICTS[a.verdict];
   const today = todayIso();
   const applyBy = a.window?.applyBy;
   return (
-    <article className="card p-4 sm:p-5">
+    <article ref={ref} id={`pick-${ipoId(a.ipo)}`} className={`card p-4 sm:p-5 scroll-mt-24 ${focused ? "ring-2 ring-brand" : ""}`}>
       <div className="flex items-start gap-3 sm:gap-4">
         <ScoreRing score={a.score} verdict={a.verdict} />
         <div className="min-w-0 flex-1">
@@ -106,7 +112,7 @@ function PickCard({ a, row, rank, onOpen }) {
   );
 }
 
-export function PlannerView({ onOpenIpo }) {
+export function PlannerView({ onOpenIpo, focusId }) {
   const m = useMarket();
   const { pans } = usePans();
   const [budget, setBudget] = useStoredState("planBudget", 200000);
@@ -168,12 +174,18 @@ export function PlannerView({ onOpenIpo }) {
           <h2 className="font-bold text-[16px] flex items-center gap-2"><Icon name="sparkles" className="size-5 text-brand" />Your plan</h2>
           <ol className="mt-3 space-y-2">
             {plan.chosen.map((r, i) => (
-              <li key={r.ipo.name} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-raised/60 px-3.5 py-2.5 text-[14px]">
-                <span className="size-6 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">{i + 1}</span>
-                <button onClick={() => onOpenIpo(r.ipo)} className="font-bold hover:text-brand">{r.ipo.name}</button>
-                <span className="text-ink-2">{r.apps} × {rupee(r.size.amount)} = <b className="text-ink">{lakh(r.capital)}</b></span>
-                <span className="text-ink-3">apply by {r.window.applyBy === todayIso() ? "today 5 PM" : date(r.window.applyBy)} · back {date(r.window.until)}</span>
-                <span className="ml-auto font-bold text-gain">≈ {rupee(r.expected)}</span>
+              <li key={r.ipo.name}>
+                <button onClick={() => onOpenIpo(r.ipo)} className="w-full flex items-start gap-3 rounded-2xl bg-raised/60 active:bg-raised px-3 py-3 text-left">
+                  <span className="mt-0.5 size-6 shrink-0 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="font-bold text-[14.5px] leading-snug">{r.ipo.name}</span>
+                      <span className="shrink-0 font-extrabold text-gain text-[14px]">≈ {rupee(r.expected)}</span>
+                    </span>
+                    <span className="mt-1 block text-[13px] text-ink-2">{r.apps} PAN{r.apps > 1 ? "s" : ""} × {rupee(r.size.amount)} = <b className="text-ink">{lakh(r.capital)}</b></span>
+                    <span className="mt-0.5 block text-[12.5px] text-ink-3">Apply by {r.window.applyBy === todayIso() ? "today 5 PM" : date(r.window.applyBy)} · money back {date(r.window.until)}</span>
+                  </span>
+                </button>
               </li>
             ))}
           </ol>
@@ -194,7 +206,8 @@ export function PlannerView({ onOpenIpo }) {
         <span className="size-8 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="calendar" className="size-4.5" /></span>
         IPO calendar
       </h2>
-      <IpoCalendar ipos={calendarIpos} plan={plan} budget={Number(budget) || 0} onOpen={onOpenIpo} />
+      <div className="sm:hidden"><AgendaCalendar ipos={calendarIpos} plan={plan} budget={Number(budget) || 0} onOpen={onOpenIpo} /></div>
+      <div className="hidden sm:block"><IpoCalendar ipos={calendarIpos} plan={plan} budget={Number(budget) || 0} onOpen={onOpenIpo} /></div>
 
       <h2 className="mt-9 mb-3 text-[19px] font-extrabold tracking-tight flex items-center gap-2">
         <span className="size-8 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="fire" className="size-4.5" /></span>
@@ -202,7 +215,7 @@ export function PlannerView({ onOpenIpo }) {
       </h2>
       {analyses.length === 0 ? <Empty icon="calendar" title="No open or upcoming IPOs">Check back when new IPOs are announced.</Empty> : (
         <div className="grid gap-3 lg:grid-cols-2">
-          {analyses.map((a, i) => <PickCard key={a.ipo.name} a={a} row={rowFor(a)} rank={i + 1} onOpen={onOpenIpo} />)}
+          {analyses.map((a, i) => <PickCard key={a.ipo.name} a={a} row={rowFor(a)} rank={i + 1} onOpen={onOpenIpo} focused={focusId === ipoId(a.ipo)} />)}
         </div>
       )}
 
