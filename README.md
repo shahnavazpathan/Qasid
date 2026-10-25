@@ -118,7 +118,7 @@ The Qasid API is **private**. It serves only the Qasid website (including the in
 
 | Layer | Stack |
 |---|---|
-| Backend | Node.js, Express 5, Axios, web-push, MongoDB (file store in development) |
+| Backend | Node.js, Express 5, Axios, web-push, SQLite (`database.sqlite`) |
 | Frontend | React 19, Vite 6, Tailwind CSS 4, a service worker for offline use and push |
 | Hosting | Render, which serves the built `client/dist` |
 
