@@ -1,5 +1,8 @@
-# Dependencies
-node_modules/
+# Database
+*.sqlite
+*.sqlite-*
+database.sqlite
+
 
 # Tesseract OCR language files
 *.traineddata

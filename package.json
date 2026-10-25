@@ -5,9 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "build": "npm --prefix client install && npm --prefix client run build",
-    "dev:client": "npm --prefix client run dev"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -16,9 +14,11 @@
   "dependencies": {
     "axios": "^1.20.0",
     "cors": "^2.8.6",
+    "crypto-js": "^4.2.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mongodb": "^6.21.0",
-    "web-push": "^3.6.7"
+    "jimp": "^0.22.10",
+    "sqlite3": "^6.0.1",
+    "tesseract.js": "^7.0.0"
   }
 }
