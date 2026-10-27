@@ -36,9 +36,14 @@ const sqlite3 = require('sqlite3').verbose();
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath);
 
+const PDFDocument = require('pdfkit');
+
 db.serialize(() => {
   db.run("CREATE TABLE IF NOT EXISTS push_tokens (token TEXT PRIMARY KEY)");
   db.run("CREATE TABLE IF NOT EXISTS allotment_cache (cache_key TEXT PRIMARY KEY, result_json TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, created_at INTEGER)");
+  db.run("CREATE TABLE IF NOT EXISTS user_pans (user_id TEXT, pan TEXT, nickname TEXT, PRIMARY KEY(user_id, pan))");
+  db.run("CREATE TABLE IF NOT EXISTS allotment_history (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, pan TEXT, ipo_name TEXT, allotted INTEGER, timestamp INTEGER)");
 });
 
 const pushTokens = new Set();
@@ -391,12 +396,50 @@ async function startIpoMonitor() {
     // 3. Schedule the monitor
     setTimeout(async () => {
       await runIpoMonitor();
+      await runPanMonitor(); // Feature 2: poll saved PANs for allotment results
       scheduleNextRun(); // Re-schedule for the next cycle
     }, intervalMs);
   }
 
   // Start the scheduling loop
   scheduleNextRun();
+}
+
+/* =========================================================
+   FEATURE 2: SAVED PAN ALLOTMENT POLLING
+========================================================= */
+async function runPanMonitor() {
+  try {
+    const pans = await new Promise((resolve) => {
+      db.all("SELECT DISTINCT pan FROM user_pans", [], (err, rows) => resolve(err ? [] : (rows || []).map(r => r.pan)));
+    });
+    if (pans.length === 0) return;
+
+    const ipos = await fetchLiveIpoList(true);
+    const openIpos = ipos.filter(ipo => !['closed', 'listed'].includes(String(ipo.name).toLowerCase()));
+
+    for (const ipo of openIpos) {
+      for (const pan of pans) {
+        const cacheKey = getAllotmentCacheKey(ipo, pan);
+        const cached = await getCachedResult(cacheKey);
+        if (cached && cached.success && cached.data && cached.data.Allotted > 0) {
+          const messages = [];
+          for (const token of pushTokens) {
+            messages.push({
+              to: token, sound: 'default', title: '🎉 Allotment Out!', body: `${ipo.name}: ${pan} allotted ${cached.data.Allotted} shares.`
+            });
+          }
+          if (messages.length > 0) {
+            axios.post('https://exp.host/--/api/v2/push/send', messages)
+              .then(() => console.log(`[PUSH] Sent allotment alert for ${pan} on ${ipo.name}`))
+              .catch(err => console.error("[PUSH] Failed:", err.message));
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[PAN MONITOR] Error:", error.message);
+  }
 }
 
 /* =========================================================
@@ -443,6 +486,10 @@ app.post("/api/check", async (req, res) => {
         if (selectedIpo.source === "bigshare") {
           const result = await queryBigshareMultiServer(selectedIpo.clientId, cleanPan);
           if (result && result.success === true) await setCachedResult(cacheKey, result);
+          if (result && result.success === true && result.data && result.data.Allotted > 0) {
+            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
+              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, result.data.Allotted, Date.now()]);
+          }
           results.push(result);
         } else if (selectedIpo.source === "mufg") {
           const tokenRes = await axios.post(MUFG_TOKEN_URL, {}, { headers: { "x-requested-with": "XMLHttpRequest" } });
@@ -461,6 +508,10 @@ app.post("/api/check", async (req, res) => {
           const mufgResult = { pan: cleanPan, success: true, data: { Name: extract("NAME1") || "N/A", Allotted: parseInt(extract("ALLOT") || "0", 10) } };
 
           await setCachedResult(cacheKey, mufgResult);
+          if (mufgResult.success) {
+            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
+              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, mufgResult.data.Allotted, Date.now()]);
+          }
           results.push(mufgResult);
         } else {
           const response = await axios.get(KFIN_API_URL, { headers: { client_id: String(clientId), reqparam: cleanPan }, validateStatus: () => true });
@@ -484,6 +535,12 @@ app.post("/api/check", async (req, res) => {
           }
           const kfinResult = { pan: cleanPan, success: true, data: { Name: kfinName, Allotted: kfinAllot } };
           await setCachedResult(cacheKey, kfinResult);
+
+          if (kfinResult.success) {
+            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
+              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, kfinAllot, Date.now()]);
+          }
+
           results.push(kfinResult);
         }
       } catch (error) {
@@ -494,6 +551,133 @@ app.post("/api/check", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
+});
+
+/* =========================================================
+   FEATURE 3: CLOUD SYNC FOR USER PANS & PROFILES
+========================================================= */
+app.post("/api/sync/pans", (req, res) => {
+  const { userId, pans } = req.body;
+  if (!userId || !Array.isArray(pans)) return res.status(400).json({ success: false, error: "userId and pans array required" });
+
+  db.serialize(() => {
+    db.run("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?)", [userId, Date.now()]);
+    db.run("DELETE FROM user_pans WHERE user_id = ?", [userId]);
+
+    const stmt = db.prepare("INSERT INTO user_pans (user_id, pan, nickname) VALUES (?, ?, ?)");
+    for (const item of pans) {
+      if (item && item.pan) {
+        stmt.run(userId, String(item.pan).trim().toUpperCase(), String(item.nickname || "Main"));
+      }
+    }
+    stmt.finalize();
+  });
+
+  res.json({ success: true, message: "PANs synced to cloud." });
+});
+
+app.get("/api/sync/pans/:userId", (req, res) => {
+  const { userId } = req.params;
+  db.all("SELECT pan, nickname FROM user_pans WHERE user_id = ?", [userId], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, pans: rows || [] });
+  });
+});
+
+/* =========================================================
+   FEATURE 4: ANALYTICS & SUCCESS RATE TRACKER
+========================================================= */
+app.get("/api/analytics", (req, res) => {
+  const { pan, userId } = req.query;
+  let query = "SELECT pan, ipo_name, allotted, timestamp FROM allotment_history";
+  let params = [];
+
+  if (userId) {
+    query += " WHERE user_id = ?";
+    params.push(userId);
+  } else if (pan) {
+    query += " WHERE pan = ?";
+    params.push(pan);
+  }
+
+  db.all(query, params, (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+
+    const totalApplications = rows.length;
+    const wins = rows.filter(r => r.allotted > 0).length;
+    const totalSharesAllotted = rows.reduce((sum, r) => sum + r.allotted, 0);
+    const winRatePercent = totalApplications > 0 ? ((wins / totalApplications) * 100).toFixed(1) : 0;
+
+    res.json({
+      success: true,
+      summary: {
+        totalApplications,
+        wins,
+        losses: totalApplications - wins,
+        winRatePercent: Number(winRatePercent),
+        totalSharesAllotted
+      },
+      history: rows
+    });
+  });
+});
+
+/* =========================================================
+   FEATURE 5: PDF ALLOTMENT SLIP DOWNLOADER
+========================================================= */
+app.get("/api/allotment/pdf", (req, res) => {
+  const { pan, name, ipoName, allotted, source } = req.query;
+
+  if (!pan || !ipoName) {
+    return res.status(400).json({ error: "Missing pan or ipoName query parameter." });
+  }
+
+  const doc = new PDFDocument({ margin: 50 });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="Allotment_Slip_${pan}.pdf"`);
+
+  doc.pipe(res);
+
+  // Header
+  doc.fontSize(22).fillColor('#1A365D').text('OFFICIAL IPO ALLOTMENT ADVICE', { align: 'center' });
+  doc.moveDown(0.5);
+  doc.fontSize(10).fillColor('#718096').text(`Generated by Qasid Messenger • ${new Date().toLocaleDateString('en-IN')}`, { align: 'center' });
+  doc.moveDown(1.5);
+
+  doc.strokeColor('#E2E8F0').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+  doc.moveDown(1.5);
+
+  // Details
+  doc.fontSize(12).fillColor('#2D3748');
+  doc.text(`IPO Name:`, 50, doc.y, { continued: true, bold: true });
+  doc.font('Helvetica-Bold').text(` ${ipoName}`);
+  doc.moveDown(0.8);
+
+  doc.font('Helvetica').text(`Investor PAN:`, 50, doc.y, { continued: true });
+  doc.font('Helvetica-Bold').text(` ${String(pan).toUpperCase()}`);
+  doc.moveDown(0.8);
+
+  doc.font('Helvetica').text(`Investor Name:`, 50, doc.y, { continued: true });
+  doc.font('Helvetica-Bold').text(` ${name || 'N/A'}`);
+  doc.moveDown(0.8);
+
+  doc.font('Helvetica').text(`Registrar Source:`, 50, doc.y, { continued: true });
+  doc.font('Helvetica-Bold').text(` ${source || 'KFin / MUFG / Bigshare'}`);
+  doc.moveDown(1.5);
+
+  // Allotment Result Box
+  const isAllotted = Number(allotted) > 0;
+  const boxColor = isAllotted ? '#C6F6D5' : '#FED7D7';
+  const textColor = isAllotted ? '#22543D' : '#742A2A';
+  const statusText = isAllotted ? `SUCCESSFUL ALLOTMENT: ${allotted} SHARES` : 'NO SHARES ALLOTTED';
+
+  doc.rect(50, doc.y, 500, 60).fill(boxColor);
+  doc.fillColor(textColor).fontSize(14).font('Helvetica-Bold').text(statusText, 60, doc.y - 40, { align: 'center' });
+
+  doc.moveDown(4);
+  doc.fontSize(9).fillColor('#A0AEC0').text('This document is a computer-generated summary based on public registrar responses.', 50, doc.y, { align: 'center' });
+
+  doc.end();
 });
 
 app.get("/health", (req, res) => {
