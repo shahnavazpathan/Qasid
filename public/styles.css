@@ -23,8 +23,8 @@
   --border: #23314f;
   --text: #e5ecf6;
   --muted: #94a3b8;
-  --primary: #5b8cff;
-  --primary-soft: #1b2a4d;
+  --primary: #60a5fa;
+  --primary-soft: #162442;
   --green: #4ade80;
   --green-soft: #133022;
   --red: #f87171;
@@ -41,8 +41,8 @@
     --border: #23314f;
     --text: #e5ecf6;
     --muted: #94a3b8;
-    --primary: #5b8cff;
-    --primary-soft: #1b2a4d;
+    --primary: #60a5fa;
+    --primary-soft: #162442;
     --green: #4ade80;
     --green-soft: #133022;
     --red: #f87171;
@@ -82,7 +82,7 @@ a { color: var(--primary); }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; }
 .brand-mark {
   width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
-  background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; font-size: 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; font-size: 16px;
 }
 .top-nav { display: flex; gap: 4px; margin-left: auto; }
 .nav-link {
@@ -129,6 +129,10 @@ textarea.input { min-height: 90px; resize: vertical; text-transform: uppercase; 
 }
 .btn-block { width: 100%; }
 .btn-primary { background: var(--primary); color: white; }
+:root[data-theme="dark"] .btn-primary,
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn-primary { color: #0b1120; }
+}
 .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
 .btn-sm { padding: 7px 12px; font-size: 13px; }
 .btn:hover { filter: brightness(1.05); }
