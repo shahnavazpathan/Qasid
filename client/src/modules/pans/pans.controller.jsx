@@ -1,6 +1,8 @@
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { PAN_RE, parsePans } from "../../shared/lib/pan.js";
+import { useAuth } from "../../shared/auth/auth.jsx";
+import { api } from "../../shared/api/client.js";
 
 // Older builds stored this placeholder in place of a real name
 const LEGACY_PLACEHOLDER = "Check allotment to fetch name";
@@ -9,8 +11,30 @@ const PansContext = createContext(null);
 export const usePans = () => useContext(PansContext);
 
 export function PansProvider({ children }) {
+  const { signedIn } = useAuth();
   const [stored, setStored] = useStoredState("savedPans", []);
   const [excluded, setExcluded] = useStoredState("uncheckedPans", []);
+  const syncing = useRef(false);
+
+  // When signed in, fetch PANs from the server DB; otherwise use localStorage
+  useEffect(() => {
+    if (!signedIn) return;
+    let live = true;
+    api.get("/api/user/pans").then(data => {
+      if (!live || !data.success || !Array.isArray(data.pans)) return;
+      syncing.current = true;
+      setStored(data.pans.map(p => ({ pan: p.pan, name: p.name || "", nickname: p.nickname || "Main" })));
+      setTimeout(() => { syncing.current = false; }, 100);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [signedIn, setStored]);
+
+  // Push PAN changes to server DB when signed in
+  const persist = useCallback(nextStored => {
+    setStored(nextStored);
+    if (!signedIn || syncing.current) return;
+    api.post("/api/user/pans", { pans: nextStored.map(p => ({ pan: p.pan, nickname: p.nickname || "Main" })) }).catch(() => {});
+  }, [signedIn, setStored]);
 
   const pans = useMemo(
     () => stored.map(p => ({ ...p, name: p.name === LEGACY_PLACEHOLDER ? "" : p.name || "" })),
@@ -23,26 +47,33 @@ export function PansProvider({ children }) {
     const valid = entries.filter(e => PAN_RE.test(e.pan));
     const invalid = entries.filter(e => !PAN_RE.test(e.pan)).map(e => e.pan);
     if (valid.length) {
+      let nextStored;
       setStored(prev => {
-        const next = prev.map(p => ({ ...p }));
+        nextStored = prev.map(p => ({ ...p }));
         valid.forEach(({ pan, nickname }) => {
-          const hit = next.find(p => p.pan === pan);
+          const hit = nextStored.find(p => p.pan === pan);
           if (hit) { if (nickname) hit.nickname = nickname; }
-          else next.push({ pan, name: "", nickname });
+          else nextStored.push({ pan, name: "", nickname });
         });
-        return next;
+        return nextStored;
       });
+      persist(nextStored);
       setExcluded(prev => prev.filter(pan => !valid.some(v => v.pan === pan)));
     }
     return { added: valid.length, invalid };
-  }, [setStored, setExcluded]);
+  }, [setStored, persist, setExcluded]);
 
   // Returns an undo function
   const remove = useCallback(pan => {
-    let snapshot;
-    setStored(prev => { snapshot = prev; return prev.filter(p => p.pan !== pan); });
-    return () => setStored(snapshot);
-  }, [setStored]);
+    let snapshot, nextStored;
+    setStored(prev => {
+      snapshot = prev;
+      nextStored = prev.filter(p => p.pan !== pan);
+      return nextStored;
+    });
+    persist(nextStored);
+    return () => { setStored(snapshot); persist(snapshot); };
+  }, [setStored, persist]);
 
   const toggle = useCallback(pan => {
     setExcluded(prev => prev.includes(pan) ? prev.filter(p => p !== pan) : [...prev, pan]);

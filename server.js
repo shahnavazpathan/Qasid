@@ -41,16 +41,61 @@ const BIGSHARE_SERVERS = [
 app.use(cors());
 app.use(express.json());
 
-// Announce a fake "allotment out" through the production notifyAllotment path. Lets the push
-// chain be exercised without waiting for a real allotment to come out. Localhost only.
-app.post("/api/test/announce", async (req, res) => {
-  const ipo = req.body?.ipo;
-  if (!ipo || !ipo.clientId) return res.status(400).json({ success: false, error: "ipo.clientId required" });
-  const push = require("./lib/push");
-  if (req.body?.insecure) push.setPushAgent(new (require("https")).Agent({ rejectUnauthorized: false }));
-  const result = await push.notifyAllotment(ipo);
-  res.json({ success: true, ...result });
+const { OAuth2Client } = require('google-auth-library');
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const googleClient = CLIENT_ID ? new OAuth2Client(CLIENT_ID) : null;
+
+// Google sign-in: verify the id_token, upsert the user, and issue a session bound to their user_id
+// so saved PANs can be looked up from the database. Bypasses the origin/signature gate - the token
+// verification IS the authentication.
+app.post("/api/auth/google", async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken || !googleClient) return res.status(400).json({ success: false, error: "Google sign-in is not configured." });
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience: CLIENT_ID });
+    const payload = ticket.getPayload();
+    const userId = `g:${payload.sub}`;
+    db.run("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?)", [userId, Date.now()]);
+    auth.issueUserSession(req, res, userId);
+    res.json({ success: true, userId, email: payload.email, name: payload.name, picture: payload.picture });
+  } catch (err) {
+    console.error("[AUTH] Google verify failed:", err.message);
+    res.status(401).json({ success: false, error: "Authentication failed." });
+  }
 });
+
+// The signed-in user's id, from the session cookie. Null for guests (they just get an empty list).
+function currentUserId(req) {
+  return req.sessionUserId || null;
+}
+
+// Saved PANs, stored in the database keyed by the signed-in user's id (not localStorage).
+// The session cookie carries the user_id; unauthenticated requests get an empty list.
+app.get("/api/user/pans", (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.json({ success: true, guest: true, pans: [] });
+  db.all("SELECT pan, nickname FROM user_pans WHERE user_id = ?", [userId], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, error: err.message });
+    res.json({ success: true, pans: rows || [] });
+  });
+});
+
+app.post("/api/user/pans", (req, res) => {
+  const userId = currentUserId(req);
+  if (!userId) return res.status(401).json({ success: false, error: "Sign in to save PANs." });
+  const pans = Array.isArray(req.body?.pans) ? req.body.pans : [];
+  if (pans.length > 50) return res.status(400).json({ success: false, error: "Maximum 50 PANs." });
+  db.serialize(() => {
+    db.run("DELETE FROM user_pans WHERE user_id = ?", [userId]);
+    const stmt = db.prepare("INSERT INTO user_pans (user_id, pan, nickname) VALUES (?, ?, ?)");
+    for (const p of pans) {
+      if (p && p.pan) stmt.run(userId, String(p.pan).trim().toUpperCase(), String(p.nickname || "Main"));
+    }
+    stmt.finalize();
+  });
+  res.json({ success: true, count: pans.length });
+});
+
 
 const sqlite3 = require('sqlite3').verbose();
 const dbPath = path.join(__dirname, 'database.sqlite');
