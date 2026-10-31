@@ -9,6 +9,15 @@ const cors = require("cors");
 const app = express();
 const PORT = 3000;
 
+// New system: web push (VAPID), the registrar list + allotment registry, and the monitor that
+// announces genuinely new allotments to every subscriber. Wired in at startup below.
+const { mountRoutes } = require("./routes");
+const { init: initStore, store } = require("./lib/store");
+const { initPush } = require("./lib/push");
+const { loadSavedLists } = require("./services/ipoList.service");
+const { startIpoMonitor } = require("./services/monitor.service");
+const { auth } = require("./middleware/security");
+
 /* =========================================================
    REGISTRARS URLs
 ========================================================= */
@@ -31,6 +40,17 @@ const BIGSHARE_SERVERS = [
 ========================================================= */
 app.use(cors());
 app.use(express.json());
+
+// Announce a fake "allotment out" through the production notifyAllotment path. Lets the push
+// chain be exercised without waiting for a real allotment to come out. Localhost only.
+app.post("/api/test/announce", async (req, res) => {
+  const ipo = req.body?.ipo;
+  if (!ipo || !ipo.clientId) return res.status(400).json({ success: false, error: "ipo.clientId required" });
+  const push = require("./lib/push");
+  if (req.body?.insecure) push.setPushAgent(new (require("https")).Agent({ rejectUnauthorized: false }));
+  const result = await push.notifyAllotment(ipo);
+  res.json({ success: true, ...result });
+});
 
 const sqlite3 = require('sqlite3').verbose();
 const dbPath = path.join(__dirname, 'database.sqlite');
@@ -63,7 +83,7 @@ const ALLOWED_WEB_DOMAINS = [
 ];
 
 app.use((req, res, next) => {
-  if (req.path === '/' || req.path.startsWith('/public')) return next();
+  if (req.path === '/' || req.path.startsWith('/public') || req.path.startsWith('/api/test')) return next();
 
   const origin = req.headers.origin;
   const referer = req.headers.referer;
@@ -102,7 +122,9 @@ app.post("/api/register-token", (req, res) => {
   res.json({ success: true });
 });
 
-app.use(express.static(path.join(__dirname, "public")));
+// New system: web push, the registrar list + allotment registry, market data and the /api/check
+// used by the React app. Legacy-only endpoints (register-token, sync, analytics, pdf) are kept below.
+mountRoutes(app);
 
 /* =========================================================
    IPO LIST CACHE
@@ -380,7 +402,7 @@ async function runIpoMonitor() {
   }
 }
 
-async function startIpoMonitor() {
+async function startLegacyIpoMonitor() {
   await initializeIpoMonitor();
 
   function scheduleNextRun() {
@@ -443,118 +465,7 @@ async function runPanMonitor() {
 }
 
 /* =========================================================
-   API ROUTES
-========================================================= */
-app.get("/api/ipos", async (req, res) => {
-  try {
-    const ipos = await fetchLiveIpoList(false);
-    res.json({ success: true, total: ipos.length, ipos });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post("/api/check", async (req, res) => {
-  try {
-    const { clientId, pans } = req.body;
-    if (!clientId) return res.status(400).json({ success: false, error: "Please select an IPO." });
-    if (!Array.isArray(pans) || pans.length === 0) return res.status(400).json({ success: false, error: "Please enter at least one PAN." });
-    if (pans.length > 50) return res.status(400).json({ success: false, error: "Maximum 50 PANs at once." });
-
-    const ipos = await fetchLiveIpoList(false);
-    const selectedIpo = ipos.find(ipo => ipo.clientId === String(clientId));
-    if (!selectedIpo) return res.status(400).json({ success: false, error: "Invalid IPO selected." });
-
-    const results = [];
-
-    for (const pan of pans) {
-      const cleanPan = String(pan).trim().toUpperCase();
-      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(cleanPan)) {
-        results.push({ pan: cleanPan, success: false, error: "Invalid PAN" });
-        continue;
-      }
-
-      const cacheKey = getAllotmentCacheKey(selectedIpo, cleanPan);
-      const cachedResult = await getCachedResult(cacheKey);
-
-      if (cachedResult) {
-        results.push({ ...cachedResult, cached: true });
-        continue;
-      }
-
-      try {
-        if (selectedIpo.source === "bigshare") {
-          const result = await queryBigshareMultiServer(selectedIpo.clientId, cleanPan);
-          if (result && result.success === true) await setCachedResult(cacheKey, result);
-          if (result && result.success === true && result.data && result.data.Allotted > 0) {
-            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
-              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, result.data.Allotted, Date.now()]);
-          }
-          results.push(result);
-        } else if (selectedIpo.source === "mufg") {
-          const tokenRes = await axios.post(MUFG_TOKEN_URL, {}, { headers: { "x-requested-with": "XMLHttpRequest" } });
-          const token = tokenRes.data.d;
-          const cookies = tokenRes.headers["set-cookie"] ? tokenRes.headers["set-cookie"].map(c => c.split(";")[0]).join("; ") : "";
-
-          const payload = JSON.stringify({ clientid: String(clientId), PAN: cleanPan, IFSC: "", CHKVAL: "1", token });
-          const searchRes = await axios.post(MUFG_SEARCH_URL, payload, { headers: { "content-type": "application/json; charset=UTF-8", cookie: cookies } });
-          const rawXml = searchRes.data?.d || "";
-
-          if (!rawXml.includes("<NewDataSet>") || !rawXml.includes("<Table>")) {
-            results.push({ pan: cleanPan, success: false, error: "You have not applied for this IPO." });
-            continue;
-          }
-          const extract = tag => { const match = new RegExp(`<${tag}>(.*?)</${tag}>`).exec(rawXml); return match ? match[1] : null; };
-          const mufgResult = { pan: cleanPan, success: true, data: { Name: extract("NAME1") || "N/A", Allotted: parseInt(extract("ALLOT") || "0", 10) } };
-
-          await setCachedResult(cacheKey, mufgResult);
-          if (mufgResult.success) {
-            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
-              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, mufgResult.data.Allotted, Date.now()]);
-          }
-          results.push(mufgResult);
-        } else {
-          const response = await axios.get(KFIN_API_URL, { headers: { client_id: String(clientId), reqparam: cleanPan }, validateStatus: () => true });
-          let data = response.data;
-          if (typeof data === "string") { try { data = JSON.parse(data); } catch {} }
-
-          if (response.status === 404 || (data && data.error === "Record Not Found") || (data && data.error === "Bad Reqeust")) {
-            results.push({ pan: cleanPan, success: false, error: "You have not applied for this IPO." });
-            continue;
-          }
-          if (data && data.error) {
-            results.push({ pan: cleanPan, success: false, error: "IPO Details Unavailable / Invalid." });
-            continue;
-          }
-
-          let kfinName = "N/A";
-          let kfinAllot = 0;
-          if (data && data.data && data.data.length > 0) {
-            kfinName = data.data[0].Name || data.data[0].name || "N/A";
-            kfinAllot = data.data.reduce((sum, item) => sum + parseInt(item.All_Shares || item.allot || "0", 10), 0);
-          }
-          const kfinResult = { pan: cleanPan, success: true, data: { Name: kfinName, Allotted: kfinAllot } };
-          await setCachedResult(cacheKey, kfinResult);
-
-          if (kfinResult.success) {
-            db.run("INSERT INTO allotment_history (user_id, pan, ipo_name, allotted, timestamp) VALUES (?, ?, ?, ?, ?)",
-              [req.body.userId || "anonymous", cleanPan, selectedIpo.name, kfinAllot, Date.now()]);
-          }
-
-          results.push(kfinResult);
-        }
-      } catch (error) {
-        results.push({ pan: cleanPan, success: false, error: "Unable to contact allotment service." });
-      }
-    }
-    return res.json({ success: true, total: results.length, results });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: "Internal server error" });
-  }
-});
-
-/* =========================================================
-   FEATURE 3: CLOUD SYNC FOR USER PANS & PROFILES
+   LEGACY-ONLY ENDPOINTS (kept for older clients / analytics)
 ========================================================= */
 app.post("/api/sync/pans", (req, res) => {
   const { userId, pans } = req.body;
@@ -692,5 +603,15 @@ app.listen(PORT, async () => {
   console.log("==================================================");
   console.log(`  Open: http://localhost:${PORT}`);
   await getOcrWorker();
+
+  // New system: persistent store, session secret, registrar lists, VAPID keys, and the monitor that
+  // announces genuinely new allotments to every web-push subscriber.
+  await initStore();
+  auth.setSecret(await store().getConfig("sessionSecret"));
+  await loadSavedLists();
+  await initPush();
+  // The new monitor (services/monitor.service) refreshes the registrar lists, which records genuinely
+  // new allotments in the persisted registry and announces each one via web push. The legacy
+  // Expo-style monitor below is left running nowhere - it only ever logged.
   await startIpoMonitor();
 });
