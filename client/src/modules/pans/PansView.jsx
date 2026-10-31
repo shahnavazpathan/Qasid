@@ -28,9 +28,13 @@ export function PansView() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight">Saved PANs</h1>
-        <p className="text-ink-3 mt-1">Family and friends' PANs, kept privately in this browser.</p>
+      <div className="mb-6 border-b border-line pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="size-2 rounded-full bg-brand animate-live" />
+          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Vault</span>
+        </div>
+        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">SAVED PANS</h1>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">Family and friends' PANs, securely stored in your local browser vault.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">

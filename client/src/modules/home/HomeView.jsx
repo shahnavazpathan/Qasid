@@ -89,16 +89,22 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
 
   return (
     <div>
-      <section className="hero-gradient text-ink rounded-[28px] p-5 sm:p-8 ring-1 ring-brand/15 overflow-hidden relative overflow-hidden">
+      <section className="hero-gradient text-ink rounded-[20px] p-5 sm:p-8 ring-1 ring-line overflow-hidden relative bg-surface shadow-pop">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Icon name="bolt" className="size-32 text-brand" />
+        </div>
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-ink-2 font-semibold text-[13px]">{new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
-            <h1 className="mt-1 text-[26px] sm:text-[36px] leading-tight font-extrabold tracking-tight">Today's IPO market</h1>
-            <p className="mt-1 text-ink-2 max-w-md text-[14px] sm:text-[15px]">Live GMP, subscription and allotment status for every mainboard and SME IPO.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="size-2 rounded-full bg-open animate-live" />
+              <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Live Terminal · {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</span>
+            </div>
+            <h1 className="text-[28px] sm:text-[40px] leading-none font-extrabold tracking-tight">MARKET PULSE</h1>
+            <p className="mt-2 text-ink-2 max-w-lg text-[14px] sm:text-[15px]">High-velocity GMP, live category subscription data, and instant registrar allotment tracking.</p>
           </div>
           <LiveBadge />
         </div>
-        <div className="relative mt-5 sm:mt-6 -mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-5 gap-2.5 overflow-x-auto no-scrollbar snap-x">
+        <div className="relative mt-6 -mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-5 gap-3 overflow-x-auto no-scrollbar snap-x">
           <StatTile label="Open now" value={m.counts.open} icon="bolt" tone="bg-open text-on-brand" onClick={() => onBrowse("open")} />
           <StatTile label="Closing today" value={board ? m.today.closing.length : null} icon="clock" tone="bg-closed text-on-brand" onClick={() => onBrowse("open")} />
           <StatTile label="Upcoming" value={m.counts.upcoming} icon="calendar" tone="bg-upcoming text-on-brand" onClick={() => onBrowse("upcoming")} />

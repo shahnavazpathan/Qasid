@@ -89,9 +89,13 @@ export function AllotmentView() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight">Allotment checker</h1>
-        <p className="text-ink-3 mt-1">One click for every PAN, across 10 registrars.</p>
+      <div className="mb-6 border-b border-line pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="size-2 rounded-full bg-open animate-live" />
+          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Live Result Aggregator</span>
+        </div>
+        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">ALLOTMENT CHECKER</h1>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">One click for every PAN, across 10 registrars. Published results are ingested instantly.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">

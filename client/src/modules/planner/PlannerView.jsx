@@ -133,9 +133,13 @@ export function PlannerView({ onOpenIpo, focusId }) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight">IPO planner</h1>
-        <p className="text-ink-3 mt-1">Overlapping IPOs on one calendar, a priority score for each, and the best plan for your budget.</p>
+      <div className="mb-6 border-b border-line pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="size-2 rounded-full bg-brand animate-live" />
+          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Capital Allocator</span>
+        </div>
+        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">IPO PLANNER</h1>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">Overlapping IPOs on one calendar, a priority score for each, and the best plan for your budget.</p>
       </div>
 
       <section className="card p-5 sm:p-6">
