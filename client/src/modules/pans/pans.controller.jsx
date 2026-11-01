@@ -16,18 +16,43 @@ export function PansProvider({ children }) {
   const [excluded, setExcluded] = useStoredState("uncheckedPans", []);
   const syncing = useRef(false);
 
-  // When signed in, fetch PANs from the server DB; otherwise use localStorage
+  // When signed in, fetch PANs from the server DB and merge with any existing local PANs
   useEffect(() => {
     if (!signedIn) return;
     let live = true;
-    api.get("/api/user/pans").then(data => {
+    api.get("/api/user/pans").then(async data => {
       if (!live || !data.success || !Array.isArray(data.pans)) return;
       syncing.current = true;
-      setStored(data.pans.map(p => ({ pan: p.pan, name: p.name || "", nickname: p.nickname || "Main" })));
+
+      const dbPans = data.pans.map(p => ({ pan: p.pan, name: p.name || "", nickname: p.nickname || "Main" }));
+
+      // Merge local PANs that might exist before sign in
+      const localPans = stored || [];
+      const combined = [...dbPans];
+      let hasNewLocal = false;
+
+      for (const lp of localPans) {
+        if (!combined.some(p => p.pan === lp.pan)) {
+          combined.push(lp);
+          hasNewLocal = true;
+        }
+      }
+
+      setStored(combined);
+
+      // If we had local PANs that weren't on the server, migrate them to the DB
+      if (hasNewLocal) {
+        try {
+          await api.post("/api/user/pans", { pans: combined.map(p => ({ pan: p.pan, nickname: p.nickname || "Main" })) });
+        } catch (e) {
+          console.error("Failed to migrate local PANs to DB:", e);
+        }
+      }
+
       setTimeout(() => { syncing.current = false; }, 100);
     }).catch(() => {});
     return () => { live = false; };
-  }, [signedIn, setStored]);
+  }, [signedIn]);
 
   // Push PAN changes to server DB when signed in
   const persist = useCallback(nextStored => {
