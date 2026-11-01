@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Qasid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Qasid's design system is dark-first (see client/src/index.css). Mirror it here so the legal
+      // pages match the app instead of landing on a cream default. No theme toggle on these pages.
+      tailwind.config = { darkMode: 'class' };
+    </script>
+    <style>
+      :root { --canvas:#0C0A09; --surface:#161413; --raised:#201D1B; --line:#2C2825; --ink:#F5F0EB; --ink-2:#B8AFA7; --ink-3:#8F8780; --brand:#FB923C; --brand-soft:#2E1A0E; --on-brand:#0C0A09; }
+      html { color-scheme: dark; }
+      body { background: var(--canvas); color: var(--ink); font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
+      h1, h2 { font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
+    </style>
+</head>
+<body class="p-6 max-w-2xl mx-auto">
+    <h1 class="text-6xl font-extrabold tracking-tight mb-8">Terms of Service</h1>
+    <p class="text-lg text-ink-2 mb-10 leading-relaxed">By using Qasid, you agree to these Terms of Service.</p>
+
+    <h2 class="text-3xl font-bold mt-12 mb-4 text-ink">Service Description</h2>
+    <p class="mb-8 text-base text-ink-2 leading-relaxed">Qasid provides information regarding IPOs, including GMP estimates, subscription data, and allotment status.</p>
+
+    <h2 class="text-3xl font-bold mt-12 mb-4 text-loss">Disclaimer</h2>
+    <ul class="list-disc pl-5 mb-8 text-base text-ink-2 leading-relaxed">
+        <li><strong class="text-ink">GMP Information:</strong> GMP (Grey Market Premium) data is unofficial, indicative, and subject to change. It should not be used as the sole basis for investment decisions.</li>
+        <li><strong class="text-ink">Not Financial Advice:</strong> The information provided on Qasid is for informational purposes only and does not constitute financial, investment, or legal advice.</li>
+        <li><strong class="text-ink">Data Accuracy:</strong> While we strive to provide accurate information from public sources, we do not guarantee the completeness or accuracy of the allotment or subscription data.</li>
+    </ul>
+
+    <h2 class="text-3xl font-bold mt-12 mb-4 text-ink">User Responsibility</h2>
+    <p class="mb-8 text-base text-ink-2 leading-relaxed">You are responsible for maintaining the security of your account and any actions taken under it.</p>
+
+    <h2 class="text-3xl font-bold mt-12 mb-4 text-ink">Changes to Terms</h2>
+    <p class="text-base text-ink-2 leading-relaxed">We may update these terms occasionally. Your continued use of the service constitutes acceptance of the updated terms.</p>
+</body>
+</html>
