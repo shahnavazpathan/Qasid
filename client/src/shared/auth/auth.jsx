@@ -69,6 +69,7 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     setUser(null);
+    try { await api.post("/api/auth/logout", {}); } catch {}
     if (window.google?.accounts?.id) {
       try { window.google.accounts.id.disableAutoSelect(); } catch {}
     }
