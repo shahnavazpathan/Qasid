@@ -51,22 +51,32 @@ function GoogleButton() {
   const { user, signedIn, signIn, signOut } = useAuth();
   if (signedIn && user) {
     return (
-      <button
-        onClick={signOut}
-        title={user.email || "Sign out"}
-        className="flex items-center gap-2 h-10 px-2.5 rounded-xl hover:bg-raised transition-colors"
-      >
-        {user.picture ? (
-          <img src={user.picture} alt="" className="size-7 rounded-full ring-1 ring-line" />
-        ) : (
-          <span className="size-7 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">
-            {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 h-10 px-2.5 rounded-xl bg-surface ring-1 ring-line">
+          {user.picture ? (
+            <img src={user.picture} alt="" className="size-7 rounded-full ring-1 ring-line" />
+          ) : (
+            <span className="size-7 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">
+              {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span className="hidden sm:inline text-[13px] font-semibold text-ink max-w-[140px] truncate">
+            {user.name || user.email}
           </span>
-        )}
-        <span className="hidden sm:inline text-[13px] font-semibold text-ink-2 max-w-[140px] truncate">
-          {user.name || user.email}
-        </span>
-      </button>
+        </div>
+        <button
+          onClick={signOut}
+          title="Sign out"
+          className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-surface ring-1 ring-line hover:bg-loss-soft hover:text-loss transition-colors text-[13px] font-semibold text-ink-2"
+        >
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="hidden sm:inline">Sign out</span>
+        </button>
+      </div>
     );
   }
   return (
