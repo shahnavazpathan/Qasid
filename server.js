@@ -40,6 +40,19 @@ const BIGSHARE_SERVERS = [
 ========================================================= */
 app.use(cors());
 app.use(express.json());
+// Issue a signed session cookie on every shell-page load so the browser keeps the session
+// across refreshes.
+app.use(auth.sessionIssuer);
+// Read the session cookie back on API calls and set req.sessionUserId,
+// so /api/user/pans knows which signed-in user the request belongs to.
+app.use("/api/", (req, res, next) => {
+  const session = auth.readSession(req);
+  if (session) {
+    req.clientKey = `s:${session.id}`;
+    req.sessionUserId = session.userId;
+  }
+  next();
+});
 
 const { OAuth2Client } = require('google-auth-library');
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -55,13 +68,21 @@ app.post("/api/auth/google", async (req, res) => {
     const ticket = await googleClient.verifyIdToken({ idToken, audience: CLIENT_ID });
     const payload = ticket.getPayload();
     const userId = `g:${payload.sub}`;
-    db.run("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?)", [userId, Date.now()]);
+    // Upsert the user and remember their profile so it survives page refreshes and deploys
+    db.run("INSERT INTO users (user_id, created_at) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET created_at=excluded.created_at", [userId, Date.now()]);
+    db.run("INSERT OR REPLACE INTO user_profiles (user_id, email, name, picture) VALUES (?, ?, ?, ?)", [userId, payload.email || null, payload.name || null, payload.picture || null]);
     auth.issueUserSession(req, res, userId);
     res.json({ success: true, userId, email: payload.email, name: payload.name, picture: payload.picture });
   } catch (err) {
     console.error("[AUTH] Google verify failed:", err.message);
     res.status(401).json({ success: false, error: "Authentication failed." });
   }
+});
+
+// Clear the session cookie so the user is actually signed out (not just hidden in React state)
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("qs", { path: "/", httpOnly: true, sameSite: "strict" });
+  res.json({ success: true });
 });
 
 // The signed-in user's id, from the session cookie. Null for guests (they just get an empty list).
@@ -76,7 +97,9 @@ app.get("/api/user/pans", (req, res) => {
   if (!userId) return res.json({ success: true, guest: true, pans: [] });
   db.all("SELECT pan, nickname FROM user_pans WHERE user_id = ?", [userId], (err, rows) => {
     if (err) return res.status(500).json({ success: false, error: err.message });
-    res.json({ success: true, pans: rows || [] });
+    db.get("SELECT email, name, picture FROM user_profiles WHERE user_id = ?", [userId], (perr, profile) => {
+      res.json({ success: true, user: profile || null, pans: rows || [] });
+    });
   });
 });
 
@@ -107,6 +130,7 @@ db.serialize(() => {
   db.run("CREATE TABLE IF NOT EXISTS push_tokens (token TEXT PRIMARY KEY)");
   db.run("CREATE TABLE IF NOT EXISTS allotment_cache (cache_key TEXT PRIMARY KEY, result_json TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, created_at INTEGER)");
+  db.run("CREATE TABLE IF NOT EXISTS user_profiles (user_id TEXT PRIMARY KEY, email TEXT, name TEXT, picture TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS user_pans (user_id TEXT, pan TEXT, nickname TEXT, PRIMARY KEY(user_id, pan))");
   db.run("CREATE TABLE IF NOT EXISTS allotment_history (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, pan TEXT, ipo_name TEXT, allotted INTEGER, timestamp INTEGER)");
 });
@@ -642,21 +666,32 @@ app.get("/health", (req, res) => {
 
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-app.listen(PORT, async () => {
-  console.log("==================================================");
-  console.log("  ALL-IN-ONE IPO CHECKER (KFin/MUFG/Bigshare)");
-  console.log("==================================================");
-  console.log(`  Open: http://localhost:${PORT}`);
-  await getOcrWorker();
-
-  // New system: persistent store, session secret, registrar lists, VAPID keys, and the monitor that
-  // announces genuinely new allotments to every web-push subscriber.
+// Load the persistent store + session secret BEFORE the server accepts any request, so session
+// cookies are signed (and later verified) with the same key from the very first request. Without
+// this the auth module falls back to a random per-boot key, and a signed-in user's cookie can't be
+// read back on a refresh or after a deploy.
+(async () => {
   await initStore();
-  auth.setSecret(await store().getConfig("sessionSecret"));
-  await loadSavedLists();
-  await initPush();
-  // The new monitor (services/monitor.service) refreshes the registrar lists, which records genuinely
-  // new allotments in the persisted registry and announces each one via web push. The legacy
-  // Expo-style monitor below is left running nowhere - it only ever logged.
-  await startIpoMonitor();
-});
+  // Session secret: from env, else a persisted value generated once. It must survive restarts and
+  // deploys or every visitor's cookie (and their saved-PAN session) breaks on each deploy.
+  let sessionSecret = process.env.SESSION_SECRET || await store().getConfig("sessionSecret");
+  if (!sessionSecret) {
+    sessionSecret = crypto.randomBytes(32).toString("hex");
+    await store().setConfig("sessionSecret", sessionSecret);
+    console.log("[AUTH] Generated new session secret (stored). Set SESSION_SECRET to pin it.");
+  }
+  auth.setSecret(sessionSecret);
+  app.listen(PORT, async () => {
+    console.log("==================================================");
+    console.log("  ALL-IN-ONE IPO CHECKER (KFin/MUFG/Bigshare)");
+    console.log("==================================================");
+    console.log(`  Open: http://localhost:${PORT}`);
+    await getOcrWorker();
+    await loadSavedLists();
+    await initPush();
+    // The new monitor (services/monitor.service) refreshes the registrar lists, which records genuinely
+    // new allotments in the persisted registry and announces each one via web push. The legacy
+    // Expo-style monitor below is left running nowhere - it only ever logged.
+    await startIpoMonitor();
+  });
+})();

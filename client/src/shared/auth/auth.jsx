@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
       const data = await api.get("/api/user/pans");
       // The endpoint returns guest:true with an empty pans list when nobody is signed in
       if (data.guest) { setUser(null); return; }
+      // The server returns the persisted profile (name/email/picture) so it survives refreshes
       setUser(data.user || { pans: data.pans || [] });
     } catch {
       setUser(null);

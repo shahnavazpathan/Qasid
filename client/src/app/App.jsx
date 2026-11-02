@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHashRoute } from "../shared/hooks/useHashRoute.js";
 import { Icon, LogoMark, SkeletonCards, ThemeToggle, ToastProvider } from "../shared/ui/index.js";
 import { PansProvider, PansView, usePans } from "../modules/pans/index.js";
@@ -47,37 +47,68 @@ function AlertBell() {
   );
 }
 
+function ProfileMenu({ user, signOut }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onDown = e => {
+      if (!ref.current || ref.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label="Account menu"
+        aria-expanded={open}
+        className="flex items-center gap-2 h-10 pl-1.5 pr-2.5 rounded-xl bg-surface ring-1 ring-line hover:bg-raised transition-colors"
+      >
+        {user.picture ? (
+          <img src={user.picture} alt="" className="size-7 rounded-full ring-1 ring-line" />
+        ) : (
+          <span className="size-7 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">
+            {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
+          </span>
+        )}
+        <span className="hidden sm:inline text-[13px] font-semibold text-ink max-w-[140px] truncate">
+          {user.name || user.email}
+        </span>
+        <svg viewBox="0 0 24 24" className={`size-3.5 text-ink-3 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-56 rounded-xl bg-surface ring-1 ring-line shadow-lg py-1.5 z-50">
+          <div className="px-3 py-2 border-b border-line">
+            <p className="text-[13px] font-bold text-ink truncate">{user.name || "Signed in"}</p>
+            <p className="text-[12px] text-ink-3 truncate">{user.email || ""}</p>
+          </div>
+          <button
+            onClick={() => { setOpen(false); signOut(); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-loss hover:bg-loss-soft transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function GoogleButton() {
   const { user, signedIn, signIn, signOut } = useAuth();
   if (signedIn && user) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <div className="flex items-center gap-2 h-10 px-2.5 rounded-xl bg-surface ring-1 ring-line">
-          {user.picture ? (
-            <img src={user.picture} alt="" className="size-7 rounded-full ring-1 ring-line" />
-          ) : (
-            <span className="size-7 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">
-              {(user.name || user.email || "?").slice(0, 1).toUpperCase()}
-            </span>
-          )}
-          <span className="hidden sm:inline text-[13px] font-semibold text-ink max-w-[140px] truncate">
-            {user.name || user.email}
-          </span>
-        </div>
-        <button
-          onClick={signOut}
-          title="Sign out"
-          className="flex items-center gap-1.5 h-10 px-3 rounded-xl bg-surface ring-1 ring-line hover:bg-loss-soft hover:text-loss transition-colors text-[13px] font-semibold text-ink-2"
-        >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          <span className="hidden sm:inline">Sign out</span>
-        </button>
-      </div>
-    );
+    return <ProfileMenu user={user} signOut={signOut} />;
   }
   return (
     <button

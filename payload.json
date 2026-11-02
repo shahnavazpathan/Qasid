@@ -1,0 +1,59 @@
+{
+  "title": "Choose the visual world",
+  "question": "The roll assigned Market Pulse. Keep it, take an alternate, or re-roll.",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Market Pulse",
+      "kicker": "THE ROLL",
+      "lineage": "Business News / Ticker Overlay",
+      "thesis": "The IPO journey as a live, high-velocity broadcast ticker.",
+      "palette": ["#000000", "#ffffff", "#e11d48", "#22c55e"],
+      "materials": ["ticker tape", "screen overlay"],
+      "viewport": "Ticker at top, IPO cards styled as data-blocks, allotment CTA.",
+      "risk": "Reads as a generic dashboard when motion is subtle.",
+      "comp": ".impeccable/mocks/decision/assigned.webp"
+    },
+    {
+      "id": "challenger-travel",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-boarding-pass-and-gate-board",
+      "label": "IPO Journey",
+      "verdict": "wins",
+      "lineage": "Boarding pass & Gate board",
+      "thesis": "The IPO journey as an airport itinerary: event-driven, sequence-focused.",
+      "palette": ["#F5F1E4", "#0C0A09", "#EA580C"],
+      "materials": ["Heavy cardstock", "Thermal printer"],
+      "viewport": "Gate board list, top boarding pass for allotment.",
+      "case": "High scannability, familiar metaphor, clear hierarchy.",
+      "risk": "Reads like a shipping app if type is not authoritative.",
+      "comp": ".impeccable/mocks/decision/challenger-travel.webp"
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "Dalal Heritage",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Chalkboard/Dalal Street",
+      "thesis": "Financial truth as marked on the physical marketplace chalkboard.",
+      "palette": ["#1e293b", "#f8fafc", "#facc15"],
+      "materials": ["Chalk", "Slate"],
+      "viewport": "Dark slate surfaces, white chalk typography, bold yellow accents.",
+      "risk": "Familiarity is very high; feels grounded but less innovative.",
+      "comp": ".impeccable/mocks/decision/model-pick.webp"
+    }
+  ],
+  "reroll": {
+    "registers": [
+      "safer",
+      "bolder"
+    ]
+  },
+  "buildPath": {
+    "value": "code",
+    "toggle": true
+  },
+  "canon": true,
+  "steer": true
+}
