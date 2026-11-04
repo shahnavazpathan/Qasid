@@ -32,12 +32,15 @@ server blocked.
 
 ## Suggested plans
 
-| Plan | Price | Requests / month | Rate limit |
-|---|---|---|---|
-| Basic | Free | 100 | 1 / second |
-| Pro | $5 | 10,000 | 5 / second |
-| Ultra | $15 | 50,000 | 10 / second |
-| Mega | $40 | 250,000 | 20 / second |
+| Plan | Price | Requests / month |
+|---|---|---|
+| Basic | Free | 100 |
+| Pro (recommended) | $1.99 | 10,000 |
+| Ultra | $7.99 | 100,000 |
+| Mega | $24.99 | 500,000 |
+
+Priced below the other Indian IPO APIs on RapidAPI per request (the most used start at $0.99 for
+1,000–7,000 requests). Extra requests cost nothing to serve, since every call is answered from the cache.
 
 Hard limits (block when exceeded) are safer than overage charges for a new API. On Render's free plan
 the server sleeps after 15 minutes without traffic and takes about a minute to wake, which paying

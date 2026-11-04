@@ -5,6 +5,7 @@ const storeLib = require("../lib/store");
 const push = require("../lib/push");
 const allotments = require("../lib/allotments");
 const alerts = require("../lib/alerts");
+const { ALLOTMENT_ALERTS } = require("../config");
 
 const IPO_CACHE_TIME = 5 * 60 * 1000;
 let ipoCache = { data: null, fetchedAt: 0 };
@@ -161,8 +162,8 @@ async function fetchLiveIpoList(forceRefresh = false) {
 
       // Announce genuinely new allotments, whichever request happened to discover them
       for (const ipo of fresh) {
-        console.log(`[ALLOTMENTS] New allotment: ${ipo.name}`);
-        push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
+        console.log(`[ALLOTMENTS] New allotment: ${ipo.name}${ALLOTMENT_ALERTS ? "" : " (alerts off on this server)"}`);
+        if (ALLOTMENT_ALERTS) push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
       }
       return merged;
     } finally {

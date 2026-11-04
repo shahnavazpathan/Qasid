@@ -34,6 +34,10 @@ module.exports = {
   // The public /v1 API stays off until it is set.
   RAPIDAPI_PROXY_SECRET: process.env.RAPIDAPI_PROXY_SECRET || null,
 
+  // ALLOTMENT_ALERTS=off: this copy tracks allotments but sends no "allotment out" notifications. For running
+  // a second server against the same database (e.g. while moving hosts), so subscribers aren't alerted twice.
+  ALLOTMENT_ALERTS: process.env.ALLOTMENT_ALERTS !== "off",
+
   // ntfy.sh topic for the owner's failure alerts (lib/alerts.js); pick a long random name, it acts as a password
   ALERT_NTFY_TOPIC: process.env.ALERT_NTFY_TOPIC || null,
 
