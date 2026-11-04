@@ -28,7 +28,7 @@ function listRegistrars(req, res) {
 
 async function checkPans(req, res) {
   try {
-    const { clientId, source, pans } = req.body;
+    const { clientId, source, pans } = req.body || {};
     if (!clientId) return res.status(400).json({ success: false, error: "Please select an IPO." });
     if (!Array.isArray(pans) || pans.length === 0) return res.status(400).json({ success: false, error: "Please enter at least one PAN." });
     if (pans.length > 50) return res.status(400).json({ success: false, error: "Maximum 50 PANs at once." });

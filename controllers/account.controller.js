@@ -2,7 +2,6 @@
 const { OAuth2Client } = require("google-auth-library");
 const storeLib = require("../lib/store");
 const { auth } = require("../middleware/security");
-const { SESSION_COOKIE } = require("../lib/auth");
 const { GOOGLE_CLIENT_ID, LEGAL_VERSION } = require("../config");
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -16,7 +15,9 @@ const consentNeeded = user => user?.consent?.version !== LEGAL_VERSION;
 
 const profileOf = user => user ? { email: user.email || null, name: user.name || null, picture: user.picture || null } : null;
 
-const clearSession = res => res.clearCookie(SESSION_COOKIE, { path: "/", httpOnly: true, sameSite: "strict" });
+// Swap the signed-in session for a plain visitor one: removing the cookie outright would lock the page
+// out of the API (every call 403s) until it is reloaded
+const clearSession = (req, res) => auth.issueUserSession(req, res, null);
 
 // Verify the Google id_token, remember the profile, and bind the session cookie to the user
 async function googleSignIn(req, res) {
@@ -38,7 +39,7 @@ async function googleSignIn(req, res) {
 
 // Clear the session cookie so the user is actually signed out (not just hidden in React state)
 function logout(req, res) {
-  clearSession(res);
+  clearSession(req, res);
   res.json({ success: true });
 }
 
@@ -47,6 +48,10 @@ async function getPans(req, res) {
   if (!userId) return res.json({ success: true, guest: true, pans: [] });
   try {
     const user = await store().getUser(userId);
+    if (!user) {
+      clearSession(req, res);
+      return res.json({ success: true, guest: true, pans: [] });
+    }
     const needed = consentNeeded(user);
     // Saved PANs are only handed out once the current Terms and Privacy Policy are agreed to
     res.json({ success: true, user: profileOf(user), pans: needed ? [] : user?.pans || [], consentNeeded: needed, legalVersion: LEGAL_VERSION });
@@ -114,7 +119,7 @@ async function deleteAccount(req, res) {
   try {
     await store().logConsent({ event: "account_deleted", userId, ip: req.ip || null });
     await store().deleteUser(userId);
-    clearSession(res);
+    clearSession(req, res);
     res.json({ success: true });
   } catch (err) {
     console.error("[ACCOUNT] delete failed:", err.message);

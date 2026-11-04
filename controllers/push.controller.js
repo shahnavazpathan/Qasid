@@ -2,8 +2,18 @@
 const storeLib = require("../lib/store");
 const push = require("../lib/push");
 
+// Browsers' push services. Only these are accepted, so nobody can make the server POST to arbitrary hosts.
+// localhost is allowed off Render for scripts/test-push.js.
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^(.+\.)?push\.apple\.com$/, /^.+\.notify\.windows\.com$/, /^(.+\.)?push\.services\.mozilla\.com$/];
+function pushHostAllowed(endpoint) {
+  let host;
+  try { host = new URL(endpoint).hostname; } catch { return false; }
+  if (!process.env.RENDER && host === "localhost") return true;
+  return PUSH_HOSTS.some(re => re.test(host));
+}
+
 function validSubscription(sub) {
-  return sub && typeof sub.endpoint === "string" && /^https:\/\//.test(sub.endpoint) && sub.endpoint.length < 1000 &&
+  return sub && typeof sub.endpoint === "string" && /^https:\/\//.test(sub.endpoint) && sub.endpoint.length < 1000 && pushHostAllowed(sub.endpoint) &&
     sub.keys && typeof sub.keys.p256dh === "string" && typeof sub.keys.auth === "string" &&
     sub.keys.p256dh.length < 200 && sub.keys.auth.length < 100;
 }

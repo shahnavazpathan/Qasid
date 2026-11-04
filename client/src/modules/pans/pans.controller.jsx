@@ -19,7 +19,7 @@ const PansContext = createContext(null);
 export const usePans = () => useContext(PansContext);
 
 export function PansProvider({ children }) {
-  const { signedIn, consentNeeded } = useAuth();
+  const { signedIn, consentNeeded, loading } = useAuth();
   // PANs go to the account only after the user has agreed to the Terms and Privacy Policy
   const synced = signedIn && !consentNeeded;
   const toast = useToast();
@@ -30,7 +30,9 @@ export function PansProvider({ children }) {
   // The saved list as of the last render, for callbacks that finish later (allotment results)
   const latest = useRef(stored);
   latest.current = stored;
-  const wasSignedIn = useRef(false);
+  // Whether this browser's list holds an account's PANs (kept across reloads, e.g. when a new Terms
+  // version asks a synced user to agree again and they sign out instead)
+  const [fromAccount, setFromAccount] = useStoredState("pansFromAccount", false);
 
   // When signed in, fetch the account's PANs and add any saved in this browser before signing in
   useEffect(() => {
@@ -67,14 +69,18 @@ export function PansProvider({ children }) {
 
   // On sign-out, forget this account's PANs on this device so the next person can't see them
   // (or copy them into their own account by signing in). They come back on the next sign-in.
+  // Someone who signs out without agreeing to the Terms never synced, so their browser's PANs stay.
   useEffect(() => {
-    if (wasSignedIn.current && !signedIn) {
+    // signedIn is false until the session check finishes on page load
+    if (loading) return;
+    if (synced && !fromAccount) setFromAccount(true);
+    if (fromAccount && !signedIn) {
+      setFromAccount(false);
       setStored([]);
       setExcluded([]);
       setHistory({});
     }
-    wasSignedIn.current = signedIn;
-  }, [signedIn, setStored, setExcluded, setHistory]);
+  }, [loading, synced, signedIn, fromAccount, setFromAccount, setStored, setExcluded, setHistory]);
 
   // Push PAN changes to the account when signed in
   const persist = useCallback(nextStored => {
