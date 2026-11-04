@@ -1,5 +1,6 @@
 import { Button, Icon } from "../../shared/ui/index.js";
 import { usePans } from "../pans/pans.controller.jsx";
+import { useAuth } from "../../shared/auth/auth.jsx";
 import { PanList } from "../pans/PanList.jsx";
 import { MAX_PANS, useAllotment, useAllotmentRunner } from "./allotment.controller.jsx";
 import { IpoPicker } from "./IpoPicker.jsx";
@@ -83,6 +84,7 @@ function Sidebar() {
 export function AllotmentView() {
   const { selected } = useAllotment();
   const { selected: pans } = usePans();
+  const { signedIn } = useAuth();
   const runner = useAllotmentRunner(selected);
   const loading = runner.status === "loading";
   const count = Math.min(pans.length, MAX_PANS);
@@ -103,7 +105,7 @@ export function AllotmentView() {
           <Step n="1" title="Choose the IPO" hint="Only IPOs whose allotment is published appear here">
             <IpoPicker />
           </Step>
-          <Step n="2" title="Pick PANs" hint="Saved only in this browser">
+          <Step n="2" title="Pick PANs" hint={signedIn ? "Saved to your account, on every device" : "Saved in this browser · sign in to keep them on every device"}>
             <PanList />
           </Step>
 

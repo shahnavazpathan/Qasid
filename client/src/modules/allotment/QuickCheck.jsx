@@ -55,7 +55,7 @@ export function QuickCheck({ ipo, onOpenFull }) {
                 />
                 <Button type="submit" variant="primary" size="lg" disabled={!draft.trim() || loading}>Check</Button>
               </div>
-              {error ? <p className="mt-2 text-[13px] text-loss">{error}</p> : <p className="mt-2 text-[12.5px] text-ink-3">The PAN is saved in this browser so you can check future IPOs in one tap.</p>}
+              {error ? <p className="mt-2 text-[13px] text-loss">{error}</p> : <p className="mt-2 text-[12.5px] text-ink-3">The PAN is saved so you can check future IPOs in one tap. Sign in to keep it on every device.</p>}
             </form>
           )}
         </div>

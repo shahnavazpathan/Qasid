@@ -69,10 +69,13 @@ export function AuthProvider({ children }) {
       initialized = true;
     }
     el.replaceChildren();
+    // Phones get the icon-only button, but Google never draws it in the white "outline" style:
+    // in light mode phones get a small "Sign in" button instead
+    const iconOnly = compact && dark;
     window.google.accounts.id.renderButton(el, {
-      type: compact ? "icon" : "standard",
+      type: iconOnly ? "icon" : "standard",
       theme: dark ? "filled_black" : "outline",
-      size: "large",
+      size: compact && !dark ? "medium" : "large",
       shape: "rectangular",
       text: "signin"
     });
