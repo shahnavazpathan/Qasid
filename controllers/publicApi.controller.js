@@ -8,6 +8,12 @@ const { RAPIDAPI_PROXY_SECRET } = require("../config");
 const STATUSES = ["open", "upcoming", "closed", "listed"];
 const DISCLAIMER = "Compiled from public exchange, registrar and SEBI pages. Provided as is, without warranty; not investment advice.";
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// A real calendar date: "2026-02-31" parses (as 3 March), so it must also read back unchanged
+function validDate(s) {
+  if (!ISO_DATE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !isNaN(d) && d.toISOString().slice(0, 10) === s;
+}
 
 // RapidAPI adds X-RapidAPI-Proxy-Secret to every request it forwards; anything without it skipped RapidAPI
 function requireRapidApi(req, res, next) {
@@ -92,9 +98,12 @@ function getIpo(req, res) {
 // GET /v1/calendar?from=YYYY-MM-DD&to=YYYY-MM-DD: open, close, allotment and listing events by date
 function calendar(req, res) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const badDates = () => res.status(400).json({ success: false, error: "from and to must be YYYY-MM-DD dates, from before to." });
   const from = String(req.query.from || today);
+  // Check from before using it: an invalid date would make the default "to" throw
+  if (!validDate(from)) return badDates();
   const to = String(req.query.to || new Date(Date.parse(`${from}T00:00:00Z`) + 30 * 864e5).toISOString().slice(0, 10));
-  if (!ISO_DATE.test(from) || !ISO_DATE.test(to) || from > to) return res.status(400).json({ success: false, error: "from and to must be YYYY-MM-DD dates, from before to." });
+  if (!validDate(to) || from > to) return badDates();
   return withBoard(res, board => {
     const events = [];
     for (const i of allIpos(board)) {

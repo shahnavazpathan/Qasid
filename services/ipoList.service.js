@@ -4,6 +4,7 @@ const market = require("../lib/market");
 const storeLib = require("../lib/store");
 const push = require("../lib/push");
 const allotments = require("../lib/allotments");
+const alerts = require("../lib/alerts");
 
 const IPO_CACHE_TIME = 5 * 60 * 1000;
 let ipoCache = { data: null, fetchedAt: 0 };
@@ -74,10 +75,12 @@ async function fetchRegistrarIpos(registrar) {
       storeLib.store().setConfig(`lastList:${registrar.id}`, ipos).catch(() => {});
     }
     registrarStatus.set(registrar.id, { ok: true, count: ipos.length, ms: Date.now() - startedAt, at: Date.now() });
+    alerts.sourceResult(`${registrar.label} (registrar)`, true);
     return { registrarId: registrar.id, ok: true, ipos };
   } catch (err) {
     console.error(`[${registrar.tag}] Failed to fetch IPO list:`, err.message);
     registrarStatus.set(registrar.id, { ok: false, error: err.message, ms: Date.now() - startedAt, at: Date.now() });
+    alerts.sourceResult(`${registrar.label} (registrar)`, false, err);
     return { registrarId: registrar.id, ok: false, ipos: lastGoodLists.get(registrar.id) || [] };
   }
 }

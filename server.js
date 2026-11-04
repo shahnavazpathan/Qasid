@@ -11,6 +11,20 @@ const history = require("./lib/history");
 const resultArchive = require("./lib/resultArchive");
 const { loadSavedLists } = require("./services/ipoList.service");
 const { startIpoMonitor } = require("./services/monitor.service");
+const alerts = require("./lib/alerts");
+
+// A stray rejected promise is logged, not fatal: one bad registrar response must not stop the monitor.
+process.on("unhandledRejection", err => {
+  console.error("[CRASH GUARD] Unhandled rejection:", err);
+});
+// After an uncaught exception the process state can't be trusted: log it, tell the owner, and exit so
+// Render restarts a clean server
+process.on("uncaughtException", err => {
+  console.error("[CRASH GUARD] Uncaught exception:", err);
+  alerts.notify("Server crashed and is restarting", String(err?.stack || err).slice(0, 400), { priority: "high", tags: "rotating_light" })
+    .finally(() => process.exit(1));
+  setTimeout(() => process.exit(1), 5000).unref();
+});
 
 // Storage and the session secret come first, so no visitor is handed a cookie signed with a throwaway key
 async function start() {

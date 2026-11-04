@@ -34,6 +34,9 @@ module.exports = {
   // The public /v1 API stays off until it is set.
   RAPIDAPI_PROXY_SECRET: process.env.RAPIDAPI_PROXY_SECRET || null,
 
+  // ntfy.sh topic for the owner's failure alerts (lib/alerts.js); pick a long random name, it acts as a password
+  ALERT_NTFY_TOPIC: process.env.ALERT_NTFY_TOPIC || null,
+
   // The only address Google sign-in accepts; the others redirect here
   MAIN_HOST: "qasid.thevellora.co.in",
   OTHER_HOSTS: ["ipo.thevellora.co.in", "qasid-x637.onrender.com"]

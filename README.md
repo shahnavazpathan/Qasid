@@ -179,6 +179,7 @@ git clone https://github.com/shahnavazpathan/Qasid.git
 cd Qasid
 npm install
 npm start            # http://localhost:3000
+npm test             # smoke test: starts the server and checks the key endpoints
 ```
 
 The server serves the built app in `client/dist`. Locally it needs no keys: without `MONGODB_URI` it keeps its data in `data/store.json`, and Google sign-in is simply unavailable.
@@ -210,6 +211,7 @@ Qasid runs on Render as a Node web service: build command `npm install`, start c
 | `GOOGLE_CLIENT_ID` | OAuth client ID that Google sign-in tokens are checked against |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional web push keys; generated once and kept in MongoDB if unset |
 | `RAPIDAPI_PROXY_SECRET` | Turns on the public `/v1` API; the secret from RapidAPI's Gateway settings |
+| `ALERT_NTFY_TOPIC` | Optional. Sends you a phone alert (ntfy app) when a registrar or data source keeps failing, recovers, or the server crashes. Use a long random name: anyone who knows it can read the alerts |
 | `EXTRA_ORIGINS` | More allowed site addresses, separated by commas |
 | `NSE_DISABLED` | Set to `1` to skip NSE, which blocks most cloud servers; details then come from BSE, then Chittorgarh |
 | `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |
