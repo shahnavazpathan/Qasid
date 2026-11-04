@@ -1,40 +1,121 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms of Service - Qasid</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Qasid's design system is dark-first (see client/src/index.css). Mirror it here so the legal
-      // pages match the app instead of landing on a cream default. No theme toggle on these pages.
-      tailwind.config = { darkMode: 'class' };
-    </script>
-    <style>
-      :root { --canvas:#0C0A09; --surface:#161413; --raised:#201D1B; --line:#2C2825; --ink:#F5F0EB; --ink-2:#B8AFA7; --ink-3:#8F8780; --brand:#FB923C; --brand-soft:#2E1A0E; --on-brand:#0C0A09; }
-      html { color-scheme: dark; }
-      body { background: var(--canvas); color: var(--ink); font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
-      h1, h2 { font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service · Qasid</title>
+  <meta name="description" content="The terms for using Qasid, including the GMP disclaimer and that Qasid is not investment advice." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script>
+    try { if (JSON.parse(localStorage.getItem("theme")) === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+  </script>
+  <style>
+    :root { --bg:#000; --surface:#0a0a0a; --line:#262626; --ink:#fff; --ink2:#a3a3a3; --brand:#ef4444; color-scheme:dark; }
+    :root[data-theme="light"] { --bg:#f5f5f5; --surface:#fff; --line:#e5e5e5; --ink:#0a0a0a; --ink2:#404040; --brand:#dc2626; color-scheme:light; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 "Plus Jakarta Sans","Segoe UI",system-ui,-apple-system,sans-serif; }
+    .wrap { max-width:780px; margin:0 auto; padding:28px 18px 64px; }
+    .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+    .brand { display:flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; font-weight:800; font-size:20px; }
+    .brand img { width:34px; height:34px; border-radius:10px; }
+    .back { color:var(--ink2); text-decoration:none; font-weight:600; font-size:14px; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px 22px; }
+    h1 { font-size:34px; line-height:1.15; letter-spacing:-.02em; margin:0 0 6px; }
+    .meta { color:var(--ink2); font-size:14px; margin:0 0 20px; }
+    h2 { font-size:20px; margin:34px 0 8px; letter-spacing:-.01em; }
+    h3 { font-size:16px; margin:20px 0 4px; }
+    p, li { color:var(--ink2); }
+    strong { color:var(--ink); }
+    a { color:var(--brand); }
+    ul { padding-left:20px; }
+    li { margin:4px 0; }
+    .note { border-left:3px solid var(--brand); padding:10px 14px; background:color-mix(in srgb, var(--brand) 8%, transparent); border-radius:8px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; margin:10px 0; }
+    th, td { text-align:left; vertical-align:top; padding:9px 8px; border-bottom:1px solid var(--line); }
+    th { color:var(--ink); }
+    td { color:var(--ink2); }
+    .foot { margin-top:22px; font-size:13px; color:var(--ink2); text-align:center; }
+    @media (max-width:560px) { h1 { font-size:28px; } .card { padding:22px 16px; } table { font-size:13px; } }
+  </style>
 </head>
-<body class="p-6 max-w-2xl mx-auto">
-    <h1 class="text-5xl font-extrabold tracking-tight mb-6">Terms of Service</h1>
-    <p class="text-lg text-ink-2 mb-8 leading-relaxed">By using Qasid, you agree to these Terms of Service.</p>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="/"><img src="/logo.svg" alt="" />Qasid</a>
+    <a class="back" href="/">← Back to Qasid</a>
+  </div>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">Service Description</h2>
-    <p class="mb-6 text-base text-ink-2 leading-relaxed">Qasid provides information regarding IPOs, including GMP estimates, subscription data, and allotment status.</p>
+  <main class="card">
+    <h1>Terms of Service</h1>
+    <p class="meta">Version 2026-11-04 · Effective 4 November 2026</p>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-loss">Disclaimer</h2>
-    <ul class="list-disc pl-5 mb-6 text-base text-ink-2 leading-relaxed">
-        <li><strong class="text-ink">GMP Information:</strong> GMP (Grey Market Premium) data is unofficial, indicative, and subject to change. It should not be used as the sole basis for investment decisions.</li>
-        <li><strong class="text-ink">Not Financial Advice:</strong> The information provided on Qasid is for informational purposes only and does not constitute financial, investment, or legal advice.</li>
-        <li><strong class="text-ink">Data Accuracy:</strong> While we strive to provide accurate information from public sources, we do not guarantee the completeness or accuracy of the allotment or subscription data.</li>
+    <p>These terms are an agreement between you and <strong>Shahnavaz Pathan</strong>, Rajkot, Gujarat, India, who runs Qasid (<a href="https://qasid.thevellora.co.in">qasid.thevellora.co.in</a>, "Qasid", "we", "us"). By using Qasid you agree to them. If you sign in, you are asked to agree to them, and to the <a href="/privacy.html">Privacy Policy</a>, by ticking a box; that agreement is recorded with its date. These terms are an electronic record under the Information Technology Act, 2000 and need no physical signature.</p>
+
+    <p class="note"><strong>Most important:</strong> Qasid is a free information tool. It is <strong>not</strong> investment advice, Qasid is <strong>not</strong> registered with SEBI, and <strong>GMP is unofficial grey-market talk that can be wrong</strong>. Any decision to apply for, buy or sell shares is yours alone.</p>
+
+    <h2>1. Who can use Qasid</h2>
+    <p>You must be at least 18 years old and able to enter into a binding contract under Indian law. Qasid is meant for people in India.</p>
+
+    <h2>2. What Qasid does</h2>
+    <p>Qasid shows information about Indian IPOs collected from public sources (stock exchanges, SEBI, IPO registrars and IPO information websites), lets you check IPO allotment results with the registrars, and offers a planner and alerts. Qasid does not apply for IPOs, does not accept money, and is not a stockbroker, depository participant, registrar, investment adviser or research analyst. Qasid is <strong>not affiliated with or endorsed by</strong> SEBI, NSE, BSE, any registrar (such as KFin Technologies, MUFG Intime or Bigshare Services), Investorgain, Chittorgarh or any company whose IPO is shown.</p>
+
+    <h2>3. Grey Market Premium (GMP)</h2>
+    <ul>
+      <li>The "grey market" is an <strong>unofficial, unregulated</strong> market. It is not recognised or supervised by SEBI or any stock exchange, and dealing in it carries risk with no legal protection.</li>
+      <li>GMP figures on Qasid are <strong>collected from third-party websites</strong>. They are informal estimates that can be inaccurate, out of date or manipulated, and they <strong>do not predict</strong> the listing price or any gain.</li>
+      <li>"Estimated listing price" and "profit per lot" are simple arithmetic on those figures, not forecasts.</li>
+      <li>Qasid does not operate, arrange or encourage any grey-market dealing.</li>
+      <li><strong>Do not make investment decisions based on GMP.</strong> Read the offer document (RHP) and, if you need advice, consult a SEBI-registered investment adviser.</li>
     </ul>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">User Responsibility</h2>
-    <p class="mb-6 text-base text-ink-2 leading-relaxed">You are responsible for maintaining the security of your account and any actions taken under it.</p>
+    <h2>4. Not investment advice</h2>
+    <p>Nothing on Qasid, including GMP, subscription figures, the planner's <em>priority score</em> and verdicts such as "Strong apply" or "Avoid", and the budget plan, is a recommendation, research report or advice to buy, sell or apply for any security. These are automatic calculations from public data, made without knowing your finances or goals. Qasid is not registered with SEBI under the SEBI (Investment Advisers) Regulations, 2013 or the SEBI (Research Analysts) Regulations, 2014. Investments in the securities market are subject to market risks.</p>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">Changes to Terms</h2>
-    <p class="text-base text-ink-2 leading-relaxed">We may update these terms occasionally. Your continued use of the service constitutes acceptance of the updated terms.</p>
+    <h2>5. Allotment results</h2>
+    <p>Allotment results are fetched from the registrar on your request and shown as received. The <strong>official</strong> result is the one from the registrar, your bank (for the blocked amount) and your depository account. Registrars' websites can be slow, down or wrong, and results can be delayed or incomplete. Always confirm with the registrar, your bank or your broker before you act.</p>
+
+    <h2>6. Your responsibilities</h2>
+    <ul>
+      <li><strong>Only check or save PANs that belong to you, or whose holder has allowed you to</strong> (for example a family member who asked you to). Looking up other people's PANs without permission is not allowed and may be unlawful.</li>
+      <li>Don't use bots, scrapers or scripts on Qasid, try to get around its security or rate limits, overload it, or use it to harm anyone.</li>
+      <li>Don't use Qasid for anything unlawful.</li>
+      <li>Keep your Google account secure. You are responsible for what is done through your signed-in account.</li>
+    </ul>
+    <p>We may limit or block access if these terms are broken.</p>
+
+    <h2>7. Your account</h2>
+    <p>Signing in is optional and done with Google. You can delete your account at any time from the account menu; this permanently removes your saved PANs, as described in the <a href="/privacy.html">Privacy Policy</a>.</p>
+
+    <h2>8. Availability and changes</h2>
+    <p>Qasid is free. We may change, pause or stop any part of it at any time, and it may be unavailable because of maintenance, registrar or data-source outages, or reasons beyond our control.</p>
+
+    <h2>9. Ownership</h2>
+    <p>Qasid's name, logo, design and code belong to us. Market data belongs to its respective sources. You may use Qasid for your own personal, non-commercial purposes.</p>
+
+    <h2>10. No warranties</h2>
+    <p>Qasid is provided <strong>"as is" and "as available"</strong>. To the extent the law allows, we make no promise that any information on it is accurate, complete, current or fit for any purpose, or that it will be uninterrupted or error-free.</p>
+
+    <h2>11. Limitation of liability</h2>
+    <p>To the extent the law allows, we are not liable for any loss or damage arising from your use of, or reliance on, Qasid or its information, including any investment loss, missed allotment, missed opportunity, or loss of profit or data, or for anything caused by registrars, data sources or other third parties. Where liability cannot be excluded, our total liability to you is limited to ₹1,000. Nothing here limits any right you have that cannot be limited under Indian law, including under the Consumer Protection Act, 2019.</p>
+
+    <h2>12. Indemnity</h2>
+    <p>You agree to compensate us for any claim or loss caused by your breach of these terms or your misuse of Qasid, including checking PANs you were not allowed to check.</p>
+
+    <h2>13. Changes to these terms</h2>
+    <p>We may update these terms. If a change matters, we will change the version date above and ask signed-in users to agree again. Using Qasid after a change means you accept the updated terms.</p>
+
+    <h2>14. Law and disputes</h2>
+    <p>These terms are governed by the laws of India. Subject to any right you have under consumer protection law, the courts at <strong>Rajkot, Gujarat</strong> have exclusive jurisdiction. Please write to the Grievance Officer first; most problems can be solved that way.</p>
+
+    <h2>15. Grievance Officer and contact</h2>
+    <p><strong>Shahnavaz Pathan</strong>, Grievance Officer, Qasid<br />Rajkot, Gujarat, India<br />Email: <a href="mailto:sk7611065@gmail.com">sk7611065@gmail.com</a></p>
+    <p>We acknowledge complaints within 7 days and aim to resolve them within 30 days.</p>
+
+    <h2>16. General</h2>
+    <p>If any part of these terms is found invalid, the rest stays in force. These terms and the Privacy Policy are the entire agreement between you and us about Qasid. If we don't enforce a term straight away, we haven't given up the right to enforce it later.</p>
+  </main>
+
+  <p class="foot"><a href="/privacy.html">Privacy Policy</a> · <a href="/">Qasid</a></p>
+</div>
 </body>
 </html>

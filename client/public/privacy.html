@@ -1,42 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Qasid</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      // Qasid's design system is dark-first (see client/src/index.css). Mirror it here so the legal
-      // pages match the app instead of landing on a cream default. No theme toggle on these pages.
-      tailwind.config = { darkMode: 'class' };
-    </script>
-    <style>
-      :root { --canvas:#0C0A09; --surface:#161413; --raised:#201D1B; --line:#2C2825; --ink:#F5F0EB; --ink-2:#B8AFA7; --ink-3:#8F8780; --brand:#FB923C; --brand-soft:#2E1A0E; --on-brand:#0C0A09; }
-      html { color-scheme: dark; }
-      body { background: var(--canvas); color: var(--ink); font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
-      h1, h2 { font-family: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy · Qasid</title>
+  <meta name="description" content="How Qasid collects, uses, stores and protects your personal data, including PANs, under India's Digital Personal Data Protection Act, 2023." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script>
+    try { if (JSON.parse(localStorage.getItem("theme")) === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+  </script>
+  <style>
+    :root { --bg:#000; --surface:#0a0a0a; --line:#262626; --ink:#fff; --ink2:#a3a3a3; --brand:#ef4444; color-scheme:dark; }
+    :root[data-theme="light"] { --bg:#f5f5f5; --surface:#fff; --line:#e5e5e5; --ink:#0a0a0a; --ink2:#404040; --brand:#dc2626; color-scheme:light; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 "Plus Jakarta Sans","Segoe UI",system-ui,-apple-system,sans-serif; }
+    .wrap { max-width:780px; margin:0 auto; padding:28px 18px 64px; }
+    .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+    .brand { display:flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; font-weight:800; font-size:20px; }
+    .brand img { width:34px; height:34px; border-radius:10px; }
+    .back { color:var(--ink2); text-decoration:none; font-weight:600; font-size:14px; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:28px 22px; }
+    h1 { font-size:34px; line-height:1.15; letter-spacing:-.02em; margin:0 0 6px; }
+    .meta { color:var(--ink2); font-size:14px; margin:0 0 20px; }
+    h2 { font-size:20px; margin:34px 0 8px; letter-spacing:-.01em; }
+    h3 { font-size:16px; margin:20px 0 4px; }
+    p, li { color:var(--ink2); }
+    strong { color:var(--ink); }
+    a { color:var(--brand); }
+    ul { padding-left:20px; }
+    li { margin:4px 0; }
+    .note { border-left:3px solid var(--brand); padding:10px 14px; background:color-mix(in srgb, var(--brand) 8%, transparent); border-radius:8px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; margin:10px 0; }
+    th, td { text-align:left; vertical-align:top; padding:9px 8px; border-bottom:1px solid var(--line); }
+    th { color:var(--ink); }
+    td { color:var(--ink2); }
+    .foot { margin-top:22px; font-size:13px; color:var(--ink2); text-align:center; }
+    @media (max-width:560px) { h1 { font-size:28px; } .card { padding:22px 16px; } table { font-size:13px; } }
+  </style>
 </head>
-<body class="p-6 max-w-2xl mx-auto">
-    <h1 class="text-5xl font-extrabold tracking-tight mb-6">Privacy Policy</h1>
-    <p class="text-lg text-ink-2 mb-8 leading-relaxed">Your privacy is important to us. This Privacy Policy outlines how Qasid collects and uses your information when you use our IPO tracking service.</p>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="brand" href="/"><img src="/logo.svg" alt="" />Qasid</a>
+    <a class="back" href="/">← Back to Qasid</a>
+  </div>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">Data We Collect</h2>
-    <ul class="list-disc pl-5 mb-6 text-base text-ink-2 leading-relaxed">
-        <li><strong class="text-ink">Google Account Information:</strong> When you sign in with Google, we collect your email address, name, and profile picture to identify you and manage your saved PANs.</li>
-        <li><strong class="text-ink">User Data:</strong> We store the PANs you explicitly choose to save to track your IPO allotment status.</li>
+  <main class="card">
+    <h1>Privacy Policy</h1>
+    <p class="meta">Version 2026-11-04 · Effective 4 November 2026</p>
+
+    <p>This policy explains what personal data Qasid (<a href="https://qasid.thevellora.co.in">qasid.thevellora.co.in</a>) collects, why, where it is kept, who it is shared with, and the rights you have. It is published under the Digital Personal Data Protection Act, 2023 (the <strong>DPDP Act</strong>) and its Rules, and the Information Technology Act, 2000 with the Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.</p>
+
+    <p class="note"><strong>In short:</strong> without signing in, your PANs stay only in your own browser. If you sign in with Google, your saved PANs are kept in your account so they appear on every device, and you can delete them, or your whole account, at any time. When you check an allotment, the PAN goes only to that IPO's registrar. We never ask for passwords, bank, demat or Aadhaar details, we never sell your data, and we show no ads.</p>
+
+    <h2>1. Who is responsible for your data</h2>
+    <p>Qasid is run by <strong>Shahnavaz Pathan</strong>, Rajkot, Gujarat, India, who is the <strong>Data Fiduciary</strong> for the personal data described here. Contact: <a href="mailto:sk7611065@gmail.com">sk7611065@gmail.com</a>.</p>
+
+    <h2>2. What we collect and why</h2>
+    <table>
+      <tr><th>Data</th><th>When</th><th>Why</th><th>Where it is kept</th></tr>
+      <tr><td>PANs, nicknames and PAN holder names you save</td><td>When you save a PAN without signing in</td><td>To check allotments in one tap</td><td><strong>Only in your browser</strong> (local storage). We don't receive this list.</td></tr>
+      <tr><td>PANs, nicknames and PAN holder names you save</td><td>When you are signed in and have agreed to this policy</td><td>To show the same PANs on all your devices</td><td>Your account on our servers, until you remove them or delete the account</td></tr>
+      <tr><td>The PAN you check, and the IPO</td><td>Each time you check an allotment</td><td>To ask that IPO's registrar for your result</td><td>Sent to the registrar. See section 3 for the encrypted result copy.</td></tr>
+      <tr><td>Google account name, email address, profile picture and account ID</td><td>When you sign in with Google</td><td>To identify your account</td><td>Your account on our servers</td></tr>
+      <tr><td>Record of your agreement: version of these documents, date and time, IP address, browser</td><td>When you tick the box and press <em>Agree and continue</em></td><td>To be able to show what you agreed to and when (legal obligation and proof of consent)</td><td>Our servers (see section 6)</td></tr>
+      <tr><td>Push notification address of your browser and its platform (Android, iPhone, desktop)</td><td>When you turn on allotment alerts</td><td>To send you allotment alerts</td><td>Our servers, until you turn alerts off or the browser drops it. It is not linked to your PANs or account.</td></tr>
+      <tr><td>A session cookie</td><td>When you open Qasid</td><td>To keep you signed in and to protect the service from abuse</td><td>Your browser, up to 90 days</td></tr>
+      <tr><td>IP address and basic request details</td><td>Each request</td><td>Security and rate limiting</td><td>Briefly in server memory; our hosting provider keeps standard access logs for a short period</td></tr>
+    </table>
+    <p>Your watchlist, past check results, planner settings and theme are kept only in your browser.</p>
+    <p>We do <strong>not</strong> collect your bank account, card, UPI, demat or broker login, Aadhaar, passwords or OTPs. We never apply for IPOs, trade or move money for you. PANs are not written to our server logs. We use no advertising or analytics trackers.</p>
+
+    <h2>3. How allotment checks work</h2>
+    <p>When you press <em>Check</em>, the PAN is sent over an encrypted connection to our server, which asks the registrar of that IPO (for example KFin Technologies, MUFG Intime, Bigshare Services) for the result, exactly as you could on the registrar's own website, and returns the answer to you.</p>
+    <p>Registrars often remove results a few weeks after listing. So that you can still see your result later, the server keeps an <strong>encrypted copy of the result for up to 12 months</strong>. The copy is locked with a key made from the PAN itself, and is filed under a one-way code, so it cannot be found or read by anyone, including us, without that PAN. It is deleted automatically after 12 months.</p>
+    <p><strong>Only check PANs that are yours, or that the PAN holder has allowed you to check</strong> (for example a family member who asked you to). See the Terms of Service.</p>
+
+    <h2>4. Legal basis</h2>
+    <ul>
+      <li><strong>Consent</strong> (DPDP Act, section 6): saving PANs to your account, and your Google profile. You give it by ticking the box and pressing <em>Agree and continue</em> after signing in. Nothing is saved to your account before that.</li>
+      <li><strong>Voluntarily provided for a specified purpose</strong> (DPDP Act, section 7(a)): the PAN you type in to check an allotment, used only for that check.</li>
+      <li><strong>Legal obligations and proof of compliance</strong>: the record of your agreement and account deletion.</li>
     </ul>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">How We Use Your Data</h2>
-    <ul class="list-disc pl-5 mb-6 text-base text-ink-2 leading-relaxed">
-        <li>We use your Google identity to securely link your saved PANs to your account.</li>
-        <li>We use your PANs solely to provide you with allotment status updates.</li>
+    <h2>5. Who we share data with</h2>
+    <p>We do not sell, rent or trade your personal data. It is shared only with these service providers, each only for the purpose stated:</p>
+    <ul>
+      <li><strong>Registrars</strong> of the IPO you check: the PAN, to fetch your result.</li>
+      <li><strong>Google</strong>: to let you sign in (Google's own privacy policy applies to your Google account).</li>
+      <li><strong>Render</strong> (application hosting), <strong>MongoDB Atlas</strong> (database) and <strong>Cloudflare</strong> (network delivery and security): they store or carry data for us under their own data protection terms.</li>
+      <li><strong>Push services</strong> run by your browser maker (Google, Apple, Mozilla, Microsoft): to deliver alerts. They see the alert text, never your PANs.</li>
+    </ul>
+    <p>Some of these providers process data on servers outside India. This is allowed under section 16 of the DPDP Act, and we do not transfer data to any country the Government of India has restricted. We may disclose data if required by law, a court order, or a government authority with lawful power to ask for it.</p>
+
+    <h2>6. How long we keep data</h2>
+    <ul>
+      <li><strong>Account and saved PANs:</strong> until you remove them or delete your account. Deleting the account erases them at once.</li>
+      <li><strong>Encrypted allotment results:</strong> up to 12 months, then deleted automatically.</li>
+      <li><strong>Push alert address:</strong> until you turn alerts off, or the browser reports it as no longer valid.</li>
+      <li><strong>Agreement records:</strong> kept after account deletion, without your email address, for up to 7 years, only to show what was agreed and when, if a dispute or legal question arises.</li>
+      <li><strong>Data in your browser:</strong> stays until you remove it in Qasid or clear your browser data. Signing out clears your saved PANs, ticks and history from that browser.</li>
     </ul>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">Data Sharing</h2>
-    <p class="mb-6 text-base text-ink-2 leading-relaxed">We do not sell, rent, or share your personal information with third parties.</p>
+    <h2>7. Your rights</h2>
+    <p>Under the DPDP Act you have the right to:</p>
+    <ul>
+      <li><strong>Access</strong> a summary of your personal data and how it is used (section 11).</li>
+      <li><strong>Correct, update or erase</strong> it (section 12). You can edit or remove saved PANs in <em>My PANs</em>, and delete your account any time from the account menu (<em>Delete account</em>).</li>
+      <li><strong>Withdraw consent</strong> at any time, as easily as you gave it, by deleting your account. Withdrawal doesn't affect what was done before it.</li>
+      <li><strong>Grievance redressal</strong> (section 13), described below, and to complain to the <strong>Data Protection Board of India</strong> if your grievance is not resolved.</li>
+      <li><strong>Nominate</strong> a person to exercise these rights if you die or become incapable (section 14).</li>
+    </ul>
+    <p>To use any right, write to <a href="mailto:sk7611065@gmail.com">sk7611065@gmail.com</a> from the email address of your Google account. We reply within 30 days.</p>
 
-    <h2 class="text-2xl font-bold mt-10 mb-3 text-ink">Data Deletion</h2>
-    <p class="text-base text-ink-2 leading-relaxed">You can remove your saved PANs at any time from your account settings. If you wish to delete your entire account and associated data, please contact us at <a href="mailto:sk7611065@gmail.com" class="text-brand underline underline-offset-4">sk7611065@gmail.com</a>.</p>
+    <h2>8. Security</h2>
+    <p>We follow reasonable security practices: all traffic uses HTTPS; the session cookie is signed and cannot be read by page scripts; the API only answers Qasid's own website and is rate limited; archived results are encrypted; and access to the database is restricted. No system is perfectly secure. If a personal data breach affects you, we will inform you and the Data Protection Board of India as the DPDP Rules require.</p>
+
+    <h2>9. Children</h2>
+    <p>Qasid is meant for adults (18 years or older). We do not knowingly process the personal data of children. If you believe a child has created an account, write to us and we will delete it.</p>
+
+    <h2>10. Changes to this policy</h2>
+    <p>If we change this policy in a way that matters, we will update the version date above and ask signed-in users to read and agree to it again before anything more is saved to their account.</p>
+
+    <h2>11. Grievance Officer</h2>
+    <p>As required by the Information Technology Act, 2000 and the rules under it, and the DPDP Act:</p>
+    <p><strong>Shahnavaz Pathan</strong>, Grievance Officer, Qasid<br />Rajkot, Gujarat, India<br />Email: <a href="mailto:sk7611065@gmail.com">sk7611065@gmail.com</a></p>
+    <p>We acknowledge complaints within 7 days and aim to resolve them within 30 days.</p>
+  </main>
+
+  <p class="foot"><a href="/terms.html">Terms of Service</a> · <a href="/">Qasid</a></p>
+</div>
 </body>
 </html>

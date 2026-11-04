@@ -16,7 +16,9 @@ const PansContext = createContext(null);
 export const usePans = () => useContext(PansContext);
 
 export function PansProvider({ children }) {
-  const { signedIn } = useAuth();
+  const { signedIn, consentNeeded } = useAuth();
+  // PANs go to the account only after the user has agreed to the Terms and Privacy Policy
+  const synced = signedIn && !consentNeeded;
   const toast = useToast();
   const [stored, setStored] = useStoredState("savedPans", []);
   const [excluded, setExcluded] = useStoredState("uncheckedPans", []);
@@ -26,7 +28,7 @@ export function PansProvider({ children }) {
 
   // When signed in, fetch the account's PANs and add any saved in this browser before signing in
   useEffect(() => {
-    if (!signedIn) return;
+    if (!synced) return;
     let live = true;
     api.get("/api/user/pans").then(async data => {
       if (!live || !data.success || !Array.isArray(data.pans)) return;
@@ -55,7 +57,7 @@ export function PansProvider({ children }) {
       setTimeout(() => { syncing.current = false; }, 100);
     }).catch(() => {});
     return () => { live = false; };
-  }, [signedIn]);
+  }, [synced]);
 
   // On sign-out, forget this account's PANs on this device so the next person can't see them
   // (or copy them into their own account by signing in). They come back on the next sign-in.
@@ -71,9 +73,9 @@ export function PansProvider({ children }) {
   // Push PAN changes to the account when signed in
   const persist = useCallback(nextStored => {
     setStored(nextStored);
-    if (!signedIn || syncing.current) return;
+    if (!synced || syncing.current) return;
     save(nextStored).catch(() => toast("Couldn't save your PANs to your account. Please try again.", null, "alert"));
-  }, [signedIn, setStored, toast]);
+  }, [synced, setStored, toast]);
 
   const pans = useMemo(
     () => stored.map(p => ({ ...p, name: p.name === LEGACY_PLACEHOLDER ? "" : p.name || "" })),

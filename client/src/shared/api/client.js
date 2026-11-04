@@ -15,5 +15,6 @@ export const api = {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body)
-  })
+  }),
+  del: path => request(path, { method: "DELETE" })
 };

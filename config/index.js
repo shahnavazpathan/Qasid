@@ -21,5 +21,16 @@ module.exports = {
   TRUST_PROXY: process.env.TRUST_PROXY === undefined ? 1 : Number(process.env.TRUST_PROXY) || false,
 
   // Session cookies are signed with SESSION_SECRET, or a secret generated once and kept in the database
-  SESSION_SECRET: process.env.SESSION_SECRET || null
+  SESSION_SECRET: process.env.SESSION_SECRET || null,
+
+  // OAuth client that Google sign-in tokens must be issued for
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || null,
+
+  // Date of the current Terms of Service and Privacy Policy (client/public/terms.html, privacy.html).
+  // Change it whenever either page changes in substance: signed-in users are then asked to agree again.
+  LEGAL_VERSION: "2026-11-04",
+
+  // The only address Google sign-in accepts; the others redirect here
+  MAIN_HOST: "qasid.thevellora.co.in",
+  OTHER_HOSTS: ["ipo.thevellora.co.in", "qasid-x637.onrender.com"]
 };

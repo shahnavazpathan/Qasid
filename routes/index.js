@@ -5,6 +5,7 @@ const { WEB_ROOT } = require("../config");
 
 function mountRoutes(app) {
   app.use("/api/push", require("./push.routes"));
+  app.use("/api", require("./account.routes"));
   app.use(express.static(WEB_ROOT));
   app.use("/api", require("./allotment.routes"));
   app.use("/api/market", require("./market.routes"));

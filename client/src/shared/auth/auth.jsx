@@ -33,8 +33,9 @@ export function AuthProvider({ children }) {
       const data = await api.get("/api/user/pans");
       // The endpoint returns guest:true with an empty pans list when nobody is signed in
       if (data.guest) { setUser(null); return; }
-      // The server returns the persisted profile (name/email/picture) so it survives refreshes
-      setUser(data.user || { pans: data.pans || [] });
+      // The server returns the persisted profile (name/email/picture) so it survives refreshes, and whether
+      // the current Terms and Privacy Policy still need agreeing to
+      setUser({ ...(data.user || {}), consentNeeded: !!data.consentNeeded, legalVersion: data.legalVersion });
     } catch {
       setUser(null);
     } finally {
@@ -59,7 +60,7 @@ export function AuthProvider({ children }) {
         callback: async (credentialResponse) => {
           try {
             const res = await api.post("/api/auth/google", { idToken: credentialResponse.credential });
-            setUser({ id: res.userId, email: res.email, name: res.name, picture: res.picture });
+            setUser({ id: res.userId, email: res.email, name: res.name, picture: res.picture, consentNeeded: !!res.consentNeeded, legalVersion: res.legalVersion });
           } catch {
             toast("Sign-in failed. Please try again.", null, "alert");
           }
@@ -89,6 +90,21 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const value = { user, loading, renderButton, signOut, signedIn: !!user };
+  // Records on the server that the user ticked the box and agreed to the current Terms and Privacy Policy
+  const acceptConsent = useCallback(async () => {
+    await api.post("/api/user/consent", { version: user?.legalVersion, agreed: true });
+    setUser(u => (u ? { ...u, consentNeeded: false } : u));
+  }, [user?.legalVersion]);
+
+  // Permanently deletes the account and its saved PANs on the server, then signs out
+  const deleteAccount = useCallback(async () => {
+    await api.del("/api/user");
+    setUser(null);
+    if (window.google?.accounts?.id) {
+      try { window.google.accounts.id.disableAutoSelect(); } catch {}
+    }
+  }, []);
+
+  const value = { user, loading, renderButton, signOut, acceptConsent, deleteAccount, signedIn: !!user, consentNeeded: !!user?.consentNeeded };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

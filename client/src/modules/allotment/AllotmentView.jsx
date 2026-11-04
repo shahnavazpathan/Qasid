@@ -84,7 +84,8 @@ function Sidebar() {
 export function AllotmentView() {
   const { selected } = useAllotment();
   const { selected: pans } = usePans();
-  const { signedIn } = useAuth();
+  const { signedIn, consentNeeded } = useAuth();
+  const synced = signedIn && !consentNeeded;
   const runner = useAllotmentRunner(selected);
   const loading = runner.status === "loading";
   const count = Math.min(pans.length, MAX_PANS);
@@ -105,7 +106,7 @@ export function AllotmentView() {
           <Step n="1" title="Choose the IPO" hint="Only IPOs whose allotment is published appear here">
             <IpoPicker />
           </Step>
-          <Step n="2" title="Pick PANs" hint={signedIn ? "Saved to your account, on every device" : "Saved in this browser · sign in to keep them on every device"}>
+          <Step n="2" title="Pick PANs" hint={synced ?"Saved to your account, on every device" : "Saved in this browser · sign in to keep them on every device"}>
             <PanList />
           </Step>
 

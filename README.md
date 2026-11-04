@@ -120,7 +120,8 @@ flowchart LR
 
 - **Allotment monitor.** The server checks every registrar's list once a minute in the evening (when results usually come out) and every five minutes the rest of the day. It records when each allotment was first seen, so only genuinely new results are announced, never old ones that reappear after a restart or a registrar outage.
 - **Alerts.** A new allotment goes out as a Web Push notification to every subscribed device. If the server's push key ever changes, the app quietly registers again the next time it opens.
-- **Accounts.** Google sign-in issues a signed, `HttpOnly` session cookie. PANs saved before signing in are merged into the account; signing out clears them from that device.
+- **Accounts.** Google sign-in issues a signed, `HttpOnly` session cookie. Before anything is saved to the account, the user ticks a box agreeing to the [Terms](https://qasid.thevellora.co.in/terms.html) and [Privacy Policy](https://qasid.thevellora.co.in/privacy.html); the server logs the version, time, IP address and browser. PANs saved before signing in are then merged into the account. Signing out clears them from that device, and *Delete account* erases the account permanently.
+- **Legal versions.** `LEGAL_VERSION` in `config/index.js` is the date of the current Terms and Privacy Policy. Change it whenever either page changes in substance, and every signed-in user is asked to agree again.
 
 ## Private API
 
@@ -147,14 +148,15 @@ The Qasid API serves only the Qasid website and installed app. It isn't open for
 | Layer | Stack |
 |---|---|
 | Backend | Node.js 24, Express 5, Axios, web-push, google-auth-library |
-| Storage | MongoDB Atlas (accounts, saved PANs, push subscribers, keys, history); SQLite for the short-lived allotment cache |
+| Storage | MongoDB Atlas: accounts, saved PANs, the Terms/Privacy agreement log, push subscribers, keys, GMP history, encrypted result archive |
 | Frontend | React 19, Vite 6, Tailwind CSS 4, a service worker for offline use and push |
 | Hosting | Render, serving the built app from `client/dist` |
 
 ```
-server.js                 Express app, sign-in, saved PANs, allotment cache, startup
-config/, middleware/      Settings from the environment; CORS, API gate and rate limits
-routes/, controllers/     API routes: market, allotment, push
+server.js                 Startup: storage, keys, then the app and the allotment monitor
+app.js                    Express app: redirect to the main address, API gate, routes
+config/, middleware/      Settings (including LEGAL_VERSION); CORS, API gate and rate limits
+routes/, controllers/     API routes: account (sign-in, PANs, agreement, delete), market, allotment, push
 services/                 Registrar list refresh and the allotment monitor
 lib/registrars/*.js       One module per registrar: listIpos() + checkPan()
 lib/market.js             IPO calendar, subscription, GMP, SEBI filings

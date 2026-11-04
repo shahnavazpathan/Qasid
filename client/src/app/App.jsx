@@ -6,6 +6,7 @@ import { AllotmentProvider, AllotmentView, useAllotment } from "../modules/allot
 import { IpoDetail, ipoId, MarketProvider, MarketView, useMarket } from "../modules/market/index.js";
 import { AlertsProvider, useAlerts } from "../modules/alerts/index.js";
 import { AuthProvider, useAuth } from "../shared/auth/auth.jsx";
+import { ConsentDialog, DeleteAccountDialog } from "../shared/auth/AccountDialogs.jsx";
 import { HomeView } from "../modules/home/index.js";
 import { PlannerView } from "../modules/planner/index.js";
 
@@ -49,6 +50,7 @@ function AlertBell() {
 
 function ProfileMenu({ user, signOut }) {
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -99,8 +101,16 @@ function ProfileMenu({ user, signOut }) {
             </svg>
             Sign out
           </button>
+          <button
+            onClick={() => { setOpen(false); setConfirmDelete(true); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-[13px] font-semibold text-ink-3 hover:bg-raised hover:text-loss transition-colors"
+          >
+            <Icon name="trash" className="size-4" />
+            Delete account
+          </button>
         </div>
       )}
+      <DeleteAccountDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} />
     </div>
   );
 }
@@ -142,7 +152,12 @@ function Footer() {
       <div className="flex items-center gap-2"><Logo /></div>
       <p>Data: NSE, SEBI, registrars{m.board?.sources ? `, ${m.board.sources.filter(s => s !== "NSE").join(", ")}` : ""}. Refreshed every minute.</p>
       {down.length > 0 && <p className="text-closed">Temporarily unavailable: {down.join(", ")}</p>}
-      <p>GMP is unofficial and indicative. Nothing here is investment advice.</p>
+      <p>GMP is unofficial grey-market data and only indicative. Qasid is not registered with SEBI and nothing here is investment advice.</p>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+        <a href="/terms.html" className="font-semibold text-ink-2 hover:text-ink">Terms of Service</a>
+        <a href="/privacy.html" className="font-semibold text-ink-2 hover:text-ink">Privacy Policy</a>
+        <a href="mailto:sk7611065@gmail.com" className="font-semibold text-ink-2 hover:text-ink">Grievances: sk7611065@gmail.com</a>
+      </p>
     </footer>
   );
 }
@@ -249,6 +264,7 @@ export default function App() {
           <AllotmentProvider>
             <MarketProvider>
               <Shell />
+              <ConsentDialog />
             </MarketProvider>
           </AllotmentProvider>
         </PansProvider>
