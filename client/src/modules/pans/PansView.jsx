@@ -4,6 +4,7 @@ import { num } from "../../shared/lib/format.js";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
 import { usePans } from "./pans.controller.jsx";
+import { useAuth } from "../../shared/auth/auth.jsx";
 import { maskPan, PanAdder, PanAvatar } from "./PanList.jsx";
 
 const OUTCOME = {
@@ -14,6 +15,7 @@ const OUTCOME = {
 
 export function PansView() {
   const { pans, remove, history } = usePans();
+  const { signedIn, consentNeeded } = useAuth();
   const toast = useToast();
   const [masked, setMasked] = useStoredState("maskPans", false);
   const [openPan, setOpenPan] = useState(null);
@@ -34,7 +36,11 @@ export function PansView() {
           <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Vault</span>
         </div>
         <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">SAVED PANS</h1>
-        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">Family and friends' PANs, securely stored in your local browser vault.</p>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">
+          {signedIn && !consentNeeded
+            ? "Your family's PANs, saved to your account and shown on every device."
+            : "Your family's PANs, saved only in this browser. Sign in to keep them on every device."}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">

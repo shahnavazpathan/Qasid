@@ -68,7 +68,7 @@ async function savePans(req, res) {
     for (const p of pans) {
       const pan = String(p?.pan || "").trim().toUpperCase();
       if (!PAN_FORMAT.test(pan) || clean.some(c => c.pan === pan)) continue;
-      clean.push({ pan, nickname: String(p.nickname || "Main").slice(0, 40), name: String(p.name || "").slice(0, 120) });
+      clean.push({ pan, nickname: String(p.nickname || "").slice(0, 40), name: String(p.name || "").slice(0, 120) });
     }
     await store().savePans(userId, clean);
     res.json({ success: true, count: clean.length });
