@@ -2,7 +2,8 @@
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource/ibm-plex-mono/500.css";
 
-/* Palette: flat colours only - orange brand on warm white (light) / neutral near-black (dark), one hue per IPO stage. */
+/* Palette: flat colours only - red accent on near-black (dark, the default) / on white (light), one hue per IPO stage.
+   Dark is the "Market Pulse" look; light is the same design on white, chosen with the theme switch. */
 :root {
   --canvas: #000000;
   --surface: #0a0a0a;
@@ -32,56 +33,33 @@
   color-scheme: dark;
 }
 
-/* Forced dark mode for Market Pulse high-contrast theme */
-@media (prefers-color-scheme: light) {
-  :root {
-    --canvas: #000000;
-    --surface: #0a0a0a;
-    --raised: #171717;
-    --line: #262626;
-    --ink: #ffffff;
-    --ink-2: #a3a3a3;
-    --ink-3: #737373;
-    --brand: #ef4444;
-    --brand-2: #f43f5e;
-    --brand-soft: #450a0a;
-    --on-brand: #ffffff;
-    --open: #22c55e;      --open-soft: #052e16;
-    --upcoming: #3b82f6;  --upcoming-soft: #1e3a8a;
-    --closed: #737373;    --closed-soft: #262626;
-    --listed: #06b6d4;    --listed-soft: #083344;
-    --sme: #a855f7;       --sme-soft: #4c1d95;
-    --gain: #22c55e;      --gain-soft: #052e16;
-    --loss: #ef4444;      --loss-soft: #450a0a;
-    --hero: #171717;
-    --shadow: 0 4px 12px rgba(0,0,0,0.5);
-    --shadow-lg: 0 10px 30px rgba(0,0,0,0.7);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --canvas: #0C0A09;
-  --surface: #161413;
-  --raised: #201D1B;
-  --line: #2C2825;
-  --ink: #F5F0EB;
-  --ink-2: #B8AFA7;
-  --ink-3: #8F8780;
-  --brand: #FB923C;
-  --brand-2: #FDBA74;
-  --brand-soft: #2E1A0E;
-  --on-brand: #0C0A09;
-  --open: #4ADE80;     --open-soft: #10291A;
-  --upcoming: #60A5FA; --upcoming-soft: #13233F;
-  --closed: #A8A29E;   --closed-soft: #262321;
-  --listed: #2DD4BF;   --listed-soft: #0E2B28;
-  --sme: #F472B6;      --sme-soft: #35142A;
-  --gain: #4ADE80;     --gain-soft: #10291A;
-  --loss: #F87171;     --loss-soft: #3A1414;
-  --hero: #1C1917;
-  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -8px rgb(0 0 0 / .55);
-  --shadow-lg: 0 24px 60px -12px rgb(0 0 0 / .7);
-  color-scheme: dark;
+:root[data-theme="light"] {
+  --canvas: #f5f5f5;
+  --surface: #ffffff;
+  --raised: #f0f0f0;
+  --line: #e5e5e5;
+  --ink: #0a0a0a;
+  --ink-2: #404040;
+  --ink-3: #6b6b6b;
+
+  --brand: #dc2626;
+  --brand-2: #e11d48;
+  --brand-soft: #fee2e2;
+  --on-brand: #ffffff;
+
+  --open: #16a34a;      --open-soft: #dcfce7;
+  --upcoming: #2563eb;  --upcoming-soft: #dbeafe;
+  --closed: #64748b;    --closed-soft: #f1f5f9;
+  --listed: #0891b2;    --listed-soft: #cffafe;
+  --sme: #9333ea;       --sme-soft: #f3e8ff;
+
+  --gain: #16a34a;      --gain-soft: #dcfce7;
+  --loss: #dc2626;      --loss-soft: #fee2e2;
+
+  --hero: #ffffff;
+  --shadow: 0 1px 2px rgb(0 0 0 / .05), 0 6px 20px -8px rgb(0 0 0 / .12);
+  --shadow-lg: 0 20px 50px -12px rgb(0 0 0 / .22);
+  color-scheme: light;
 }
 
 @theme inline {
@@ -151,13 +129,12 @@
   color: var(--ink-3);
 }
 
-/* Fixed deep hues (not theme tokens) so white text stays readable in both themes */
-/* Solid fixed orange (not a theme token) so white text stays readable in both themes */
+/* Fixed deep red (not a theme token) so white text stays readable in both themes */
 @utility brand-gradient {
-  background-color: #EA580C;
+  background-color: #DC2626;
 }
 
-/* Solid orange in light mode, solid charcoal in dark mode */
+/* Hero cards: charcoal in dark mode, white in light mode */
 @utility hero-gradient {
   background-color: var(--hero);
 }

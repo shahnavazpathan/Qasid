@@ -21,8 +21,8 @@ const NAV = [
 function Logo() {
   return (
     <a href="#/home" className="flex items-center gap-2.5 shrink-0" aria-label="Qasid home">
-      <LogoMark size={36} fill="#ffffff" pathFill="#000000" className="rounded-xl shadow-lg" />
-      <span className="font-extrabold tracking-tight text-[20px] text-white">Qasid</span>
+      <LogoMark size={36} fill="var(--ink)" pathFill="var(--canvas)" className="rounded-xl shadow-lg" />
+      <span className="font-extrabold tracking-tight text-[20px] text-ink">Qasid</span>
     </a>
   );
 }
@@ -113,19 +113,24 @@ function GoogleButton() {
   return <GoogleSignIn renderButton={renderButton} />;
 }
 
-// Google's own button, redrawn when the screen width changes (icon only on phones)
+// Google's own button, redrawn when the theme or screen width changes (icon only on phones)
 function GoogleSignIn({ renderButton }) {
   const ref = useRef(null);
   useEffect(() => {
     const wide = matchMedia("(min-width: 640px)");
     const draw = () => {
-      if (ref.current) renderButton(ref.current, { compact: !wide.matches }).catch(e => console.error("[auth]", e.message));
+      const dark = document.documentElement.dataset.theme !== "light";
+      if (ref.current) renderButton(ref.current, { dark, compact: !wide.matches }).catch(e => console.error("[auth]", e.message));
     };
     draw();
+    const themeWatch = new MutationObserver(draw);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     wide.addEventListener("change", draw);
-    return () => wide.removeEventListener("change", draw);
+    return () => { themeWatch.disconnect(); wide.removeEventListener("change", draw); };
   }, [renderButton]);
-  return <div ref={ref} className="h-10 flex items-center" />;
+  // color-scheme light: Google's frame is a light page; inside our dark page the browser would otherwise
+  // paint the frame's background solid white around the button
+  return <div ref={ref} className="h-10 flex items-center" style={{ colorScheme: "light" }} />;
 }
 
 function Footer() {

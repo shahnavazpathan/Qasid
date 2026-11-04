@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
 
   // Draws Google's own button into el. Unlike prompt() (One Tap), it opens Google's sign-in window
   // even for visitors who aren't logged in to Google yet, or who closed One Tap before.
-  const renderButton = useCallback(async (el, { compact }) => {
+  const renderButton = useCallback(async (el, { dark, compact }) => {
     if (!window.google?.accounts?.id) {
       await loadScript();
     }
@@ -71,8 +71,7 @@ export function AuthProvider({ children }) {
     el.replaceChildren();
     window.google.accounts.id.renderButton(el, {
       type: compact ? "icon" : "standard",
-      // The site is always dark (index.css forces it)
-      theme: "filled_black",
+      theme: dark ? "filled_black" : "outline",
       size: "large",
       shape: "rectangular",
       text: "signin"

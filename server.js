@@ -38,6 +38,18 @@ const BIGSHARE_SERVERS = [
 /* =========================================================
    EXPRESS
 ========================================================= */
+// Send visitors on the other addresses (ipo.thevellora.co.in, the onrender.com one) to the main one:
+// Google sign-in only accepts the main address. Page loads only, and never Render's health check.
+const MAIN_HOST = "qasid.thevellora.co.in";
+const OTHER_HOSTS = new Set(["ipo.thevellora.co.in", "qasid-x637.onrender.com"]);
+app.use((req, res, next) => {
+  const host = String(req.headers.host || "").toLowerCase().split(":")[0];
+  if (OTHER_HOSTS.has(host) && (req.method === "GET" || req.method === "HEAD") && req.path !== "/health") {
+    return res.redirect(301, `https://${MAIN_HOST}${req.originalUrl}`);
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 // Issue a signed session cookie on every shell-page load so the browser keeps the session

@@ -32,6 +32,26 @@ function base64UrlToBytes(base64) {
   return Uint8Array.from(raw, c => c.charCodeAt(0));
 }
 
+// True when the subscription was made with a different server key than the server's current one
+// (its key was reset): the server can no longer send to it, so it has to be replaced
+function keyChanged(sub, publicKey) {
+  const used = sub.options?.applicationServerKey;
+  if (!used) return false;
+  const a = new Uint8Array(used), b = base64UrlToBytes(publicKey);
+  return a.length !== b.length || a.some((x, i) => x !== b[i]);
+}
+
+// The existing subscription, or a new one when there is none or it uses an old server key
+async function currentSubscription(reg, publicKey) {
+  const sub = await reg.pushManager.getSubscription();
+  if (sub && !keyChanged(sub, publicKey)) return sub;
+  if (sub) {
+    await api.post("/api/push/unsubscribe", { endpoint: sub.endpoint }).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+  return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) });
+}
+
 async function readyRegistration() {
   const existing = await navigator.serviceWorker.getRegistration();
   if (!existing) await navigator.serviceWorker.register("/sw.js");
@@ -44,10 +64,7 @@ export async function enablePush() {
   if (permission !== "granted") return permission === "denied" ? "denied" : "off";
   const reg = await readyRegistration();
   const { publicKey } = await api.get("/api/push/public-key");
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(publicKey) });
-  }
+  const sub = await currentSubscription(reg, publicKey);
   await api.post("/api/push/subscribe", { subscription: sub.toJSON(), platform: platform() });
   return "on";
 }
@@ -62,12 +79,20 @@ export async function disablePush() {
   return "off";
 }
 
-// Re-register an existing subscription with the server (e.g. after the server's store was reset)
+// Re-register an existing subscription with the server (e.g. after the server's store was reset).
+// If the server's key changed since alerts were turned on, quietly subscribe again with the new key:
+// notification permission is already granted, so no prompt is shown.
 export async function syncPush() {
   if (!pushSupported() || Notification.permission !== "granted") return;
-  const reg = await navigator.serviceWorker.getRegistration();
-  const sub = reg && (await reg.pushManager.getSubscription());
-  if (sub) await api.post("/api/push/subscribe", { subscription: sub.toJSON(), platform: platform() }).catch(() => {});
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !(await reg.pushManager.getSubscription())) return;
+    const { publicKey } = await api.get("/api/push/public-key");
+    const sub = await currentSubscription(reg, publicKey);
+    await api.post("/api/push/subscribe", { subscription: sub.toJSON(), platform: platform() });
+  } catch (err) {
+    console.error("[alerts] Could not refresh the alert subscription:", err.message);
+  }
 }
 
 export async function sendTestPush() {
