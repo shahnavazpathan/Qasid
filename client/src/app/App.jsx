@@ -22,8 +22,8 @@ const NAV = [
 function Logo() {
   return (
     <a href="#/home" className="flex items-center gap-2.5 shrink-0" aria-label="Qasid home">
-      <LogoMark size={36} fill="var(--ink)" pathFill="var(--canvas)" className="rounded-xl shadow-lg" />
-      <span className="font-extrabold tracking-tight text-[20px] text-ink">Qasid</span>
+      <LogoMark size={32} fill="var(--ink)" pathFill="var(--canvas)" className="rounded-lg" />
+      <span className="font-bold tracking-tight text-[19px] text-ink">Qasid</span>
     </a>
   );
 }
@@ -198,7 +198,7 @@ function Shell() {
   return (
     <AlertsProvider onOpenAllotment={() => go("allotment")}>
       <div className="min-h-screen">
-        <header className="sticky top-0 z-40 bg-canvas/85 backdrop-blur-xl border-b border-line/70">
+        <header className="sticky top-0 z-40 bg-canvas/90 backdrop-blur-lg border-b border-line">
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6 h-16 flex items-center gap-6">
             <Logo />
             <nav aria-label="Main" className="hidden md:flex gap-1 ml-4">
@@ -207,9 +207,8 @@ function Shell() {
                   key={n.route}
                   href={`#/${n.route}`}
                   aria-current={page === n.route ? "page" : undefined}
-                  className={`h-10 px-4 inline-flex items-center gap-2 rounded-xl text-[14px] font-semibold transition-colors ${page === n.route ? "bg-brand-soft text-brand" : "text-ink-2 hover:text-ink hover:bg-raised"}`}
+                  className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg text-[14px] font-semibold transition-colors ${page === n.route ? "bg-raised text-ink" : "text-ink-3 hover:text-ink"}`}
                 >
-                  <Icon name={n.icon} className="size-4.5" />
                   {n.label}
                   {n.route === "pans" && pans.length > 0 && <span className="text-[11px] opacity-70">{pans.length}</span>}
                 </a>
@@ -235,15 +234,13 @@ function Shell() {
           <Footer />
         </main>
 
-        <nav aria-label="Main" className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur-xl border-t border-line pb-[env(safe-area-inset-bottom)]">
+        <nav aria-label="Main" className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-canvas/95 backdrop-blur-lg border-t border-line pb-[env(safe-area-inset-bottom)]">
           <div className="grid grid-cols-5 h-16">
             {NAV.map(n => {
               const active = page === n.route;
               return (
-                <a key={n.route} href={`#/${n.route}`} aria-current={active ? "page" : undefined} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-bold ${active ? "text-brand" : "text-ink-3"}`}>
-                  <span className={`h-7 w-12 grid place-items-center rounded-full transition-colors ${active ? "bg-brand-soft" : ""}`}>
-                    <Icon name={n.icon} className="size-5" />
-                  </span>
+                <a key={n.route} href={`#/${n.route}`} aria-current={active ? "page" : undefined} className={`flex flex-col items-center justify-center gap-1 text-[11px] font-semibold ${active ? "text-ink" : "text-ink-3"}`}>
+                  <Icon name={n.icon} className={`size-5 ${active ? "text-brand" : ""}`} />
                   {n.label}
                 </a>
               );

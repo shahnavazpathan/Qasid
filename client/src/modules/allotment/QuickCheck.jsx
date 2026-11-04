@@ -26,12 +26,10 @@ export function QuickCheck({ ipo, onOpenFull }) {
 
   return (
     <div className="space-y-4">
-      <div className="card p-5 overflow-hidden relative">
-        <div className="absolute -right-10 -top-10 size-36 rounded-full bg-open-soft" aria-hidden="true" />
-        <div className="relative">
-          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-open bg-open-soft rounded-full px-2.5 h-6"><i className="size-1.5 rounded-full bg-open animate-live" />Allotment is out</span>
-          <p className="mt-2 font-bold text-[16px]">{displayName(ipo.name)}</p>
-          <p className="text-[13px] text-ink-3">Registrar · {ipo.registrar || ipo.source}</p>
+      <div className="card p-5">
+        <div>
+          <p className="font-bold text-[16px]">{displayName(ipo.name)}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-3"><span className="size-1.5 rounded-full bg-open" />Allotment out · {ipo.registrar || ipo.source}</p>
 
           {pans.length > 0 ? (
             <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -53,7 +51,7 @@ export function QuickCheck({ ipo, onOpenFull }) {
                   aria-label="PAN"
                   autoCapitalize="characters"
                   spellCheck="false"
-                  className="flex-1 min-w-0 h-12 px-4 rounded-2xl bg-raised font-mono text-[15px] uppercase placeholder:normal-case placeholder:font-sans placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand"
+                  className="flex-1 min-w-0 h-12 px-4 rounded-xl bg-raised font-mono text-[15px] uppercase placeholder:normal-case placeholder:font-sans placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand"
                 />
                 <Button type="submit" variant="primary" size="lg" disabled={!draft.trim() || loading}>Check</Button>
               </div>

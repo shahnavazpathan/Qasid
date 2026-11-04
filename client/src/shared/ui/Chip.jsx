@@ -16,7 +16,7 @@ const TONES = {
 export function Chip({ tone = "neutral", className = "", children, dot = false }) {
   return (
     <span className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-[11.5px] font-semibold whitespace-nowrap ${TONES[tone]} ${className}`}>
-      {dot && <span className="size-1.5 rounded-full bg-current animate-live" />}
+      {dot && <span className="size-1.5 rounded-full bg-current" />}
       {children}
     </span>
   );
@@ -29,7 +29,7 @@ export function StageChip({ status }) {
 }
 
 export function TypeChip({ type }) {
-  return type === "SME" ? <Chip tone="sme">SME</Chip> : <Chip tone="outline">Mainboard</Chip>;
+  return type === "SME" ? <Chip tone="sme">SME</Chip> : <Chip>Mainboard</Chip>;
 }
 
 // Subscription colour scale: <1x grey, 1–10x amber, 10–50x green, 50x+ violet
@@ -49,5 +49,5 @@ export function SubChip({ times }) {
 export function GainChip({ value, suffix = "%" }) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return <Chip>—</Chip>;
   const v = Number(value);
-  return <Chip tone={v > 0 ? "gain" : v < 0 ? "loss" : "neutral"}>{v > 0 ? "▲ " : v < 0 ? "▼ " : ""}{Math.abs(v).toFixed(1)}{suffix}</Chip>;
+  return <Chip tone={v > 0 ? "gain" : v < 0 ? "loss" : "neutral"} className="tabular-nums">{v > 0 ? "+" : v < 0 ? "−" : ""}{Math.abs(v).toFixed(1)}{suffix}</Chip>;
 }

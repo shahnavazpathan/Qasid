@@ -27,14 +27,14 @@ export function ConsentDialog() {
 
   return (
     <Dialog open={signedIn && consentNeeded} label="Agree to the Terms and Privacy Policy">
-      <span className="size-11 grid place-items-center rounded-2xl bg-brand-soft text-brand"><Icon name="check" className="size-5" /></span>
-      <h2 className="mt-3 text-[20px] font-extrabold tracking-tight">Before we save your PANs</h2>
+      <span className="size-11 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="check" className="size-5" /></span>
+      <h2 className="mt-3 text-[20px] font-bold tracking-tight">Before we save your PANs</h2>
       <ul className="mt-3 space-y-2.5 text-[14px] text-ink-2">
         <li>• Your saved PANs, their nicknames and holder names are kept in your account so they show on every device. You can remove them, or delete your whole account, at any time.</li>
         <li>• When you check an allotment, the PAN is sent only to that IPO's registrar, to fetch your result.</li>
         <li>• GMP is unofficial grey-market data and can be wrong. Qasid is not registered with SEBI and nothing here is investment advice.</li>
       </ul>
-      <label className="mt-5 flex items-start gap-3 rounded-2xl bg-raised p-3.5 cursor-pointer">
+      <label className="mt-5 flex items-start gap-3 rounded-xl bg-raised p-3.5 cursor-pointer">
         <input type="checkbox" checked={ticked} onChange={e => setTicked(e.target.checked)} className="mt-0.5 size-5 accent-[#DC2626] shrink-0" />
         <span className="text-[14px] text-ink">
           I have read and agree to the {docLink("/terms.html", "Terms of Service")} and the {docLink("/privacy.html", "Privacy Policy")}.
@@ -69,8 +69,8 @@ export function DeleteAccountDialog({ open, onClose }) {
 
   return (
     <Dialog open={open} onClose={busy ? null : onClose} label="Delete account">
-      <span className="size-11 grid place-items-center rounded-2xl bg-loss-soft text-loss"><Icon name="trash" className="size-5" /></span>
-      <h2 className="mt-3 text-[20px] font-extrabold tracking-tight">Delete your account?</h2>
+      <span className="size-11 grid place-items-center rounded-xl bg-loss-soft text-loss"><Icon name="trash" className="size-5" /></span>
+      <h2 className="mt-3 text-[20px] font-bold tracking-tight">Delete your account?</h2>
       <p className="mt-2 text-[14px] text-ink-2">
         This permanently deletes your account and every PAN saved in it, from all your devices. It can't be undone.
         Only a record that you once agreed to the Terms and Privacy Policy is kept, without your email.

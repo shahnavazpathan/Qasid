@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CompanyLogo, Empty, Icon, SkeletonCards, Tabs } from "../../shared/ui/index.js";
+import { CompanyLogo, Empty, Icon, PageHeader, SectionTitle, SkeletonCards, Tabs } from "../../shared/ui/index.js";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { date, num } from "../../shared/lib/format.js";
 import { todayIso } from "../../shared/lib/ipo.js";
@@ -13,16 +13,13 @@ import { ipoId } from "../market/market.controller.jsx";
 const rupee = n => `₹${num(Math.round(n))}`;
 const lakh = n => (n >= 100000 ? `₹${(n / 100000).toFixed(n >= 1000000 ? 1 : 2)}L` : rupee(n));
 
-function ScoreRing({ score, verdict }) {
-  const r = 22, c = 2 * Math.PI * r;
+// The score out of 100, coloured by verdict
+function Score({ score, verdict }) {
   const colour = verdict === "strong" || verdict === "apply" ? "text-open" : verdict === "consider" ? "text-closed" : verdict === "avoid" ? "text-loss" : "text-ink-3";
   return (
-    <div className={`relative size-14 shrink-0 ${colour}`} aria-label={score === null ? "No score" : `Score ${score} of 100`}>
-      <svg viewBox="0 0 56 56" className="size-14 -rotate-90">
-        <circle cx="28" cy="28" r={r} fill="none" stroke="var(--raised)" strokeWidth="6" />
-        {score !== null && <circle cx="28" cy="28" r={r} fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(score / 100) * c} ${c}`} />}
-      </svg>
-      <span className="absolute inset-0 grid place-items-center text-[15px] font-extrabold text-ink">{score ?? "–"}</span>
+    <div className="shrink-0 w-12 text-center" aria-label={score === null ? "No score" : `Score ${score} of 100`}>
+      <p className={`text-[24px] font-bold leading-none tabular-nums ${colour}`}>{score ?? "–"}</p>
+      <p className="mt-1 text-[11px] text-ink-3">score</p>
     </div>
   );
 }
@@ -30,7 +27,7 @@ function ScoreRing({ score, verdict }) {
 function Field({ label, children, hint }) {
   return (
     <label className="block">
-      <span className="text-[12px] font-semibold uppercase tracking-wide text-ink-3">{label}</span>
+      <span className="text-[12.5px] font-medium text-ink-3">{label}</span>
       <div className="mt-1.5">{children}</div>
       {hint && <span className="mt-1 block text-[12px] text-ink-3">{hint}</span>}
     </label>
@@ -39,9 +36,9 @@ function Field({ label, children, hint }) {
 
 function Stat({ label, value, tone = "" }) {
   return (
-    <div className="card p-4">
-      <p className={`text-[22px] sm:text-[24px] font-extrabold leading-tight ${tone}`}>{value}</p>
-      <p className="text-[12.5px] font-semibold text-ink-3 mt-0.5">{label}</p>
+    <div className="min-w-0">
+      <p className={`text-[20px] font-bold leading-tight tabular-nums ${tone}`}>{value}</p>
+      <p className="text-[12.5px] text-ink-3 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -58,13 +55,13 @@ function PickCard({ a, row, rank, onOpen, focused }) {
   return (
     <article ref={ref} id={`pick-${ipoId(a.ipo)}`} className={`card p-4 sm:p-5 scroll-mt-24 ${focused ? "ring-2 ring-brand" : ""}`}>
       <div className="flex items-start gap-3 sm:gap-4">
-        <ScoreRing score={a.score} verdict={a.verdict} />
+        <Score score={a.score} verdict={a.verdict} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[12px] font-bold text-ink-3">#{rank}</span>
             <span className={`h-6 px-2.5 rounded-full text-[11.5px] font-bold grid place-items-center ${v.tone}`}>{v.label}</span>
             {a.ipo.type === "SME" && <span className="h-6 px-2.5 rounded-full text-[11.5px] font-bold grid place-items-center bg-sme-soft text-sme">SME</span>}
-            {row?.apps > 0 && <span className="h-6 px-2.5 rounded-full text-[11.5px] font-bold grid place-items-center bg-brand text-on-brand">Plan: {row.apps} PAN{row.apps > 1 ? "s" : ""}</span>}
+            {row?.apps > 0 && <span className="h-6 px-2.5 rounded-full text-[11.5px] font-semibold grid place-items-center bg-ink text-canvas">Plan: {row.apps} PAN{row.apps > 1 ? "s" : ""}</span>}
           </div>
           <button onClick={() => onOpen(a.ipo)} className="mt-1.5 flex items-center gap-2 text-left hover:text-brand">
             <CompanyLogo name={a.ipo.name} src={a.ipo.logo} size={28} className="rounded-lg!" />
@@ -74,37 +71,37 @@ function PickCard({ a, row, rank, onOpen, focused }) {
       </div>
 
       {a.size && (
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div className="rounded-xl bg-raised/70 px-3 py-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-3">Apply</p>
-            <p className="text-[13.5px] font-bold">{a.size.lots} lot{a.size.lots > 1 ? "s" : ""} · {rupee(a.size.amount)}</p>
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="min-w-0">
+            <p className="text-[12px] text-ink-3">Apply</p>
+            <p className="text-[14px] font-semibold tabular-nums">{a.size.lots} lot{a.size.lots > 1 ? "s" : ""} · {rupee(a.size.amount)}</p>
           </div>
-          <div className="rounded-xl bg-raised/70 px-3 py-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-3">Allotment chance</p>
-            <p className="text-[13.5px] font-bold">{Math.round(a.chance * 100)}%{a.demand.estimated ? <span className="text-ink-3 font-semibold"> est.</span> : ""}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] text-ink-3">Allotment chance</p>
+            <p className="text-[14px] font-semibold tabular-nums">{Math.round(a.chance * 100)}%{a.demand.estimated ? <span className="text-ink-3 font-semibold"> est.</span> : ""}</p>
           </div>
-          <div className="rounded-xl bg-raised/70 px-3 py-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-3">Expected / PAN</p>
+          <div className="min-w-0">
+            <p className="text-[12px] text-ink-3">Expected / PAN</p>
             <p className={`text-[13.5px] font-bold ${a.ev > 0 ? "text-gain" : "text-loss"}`}>{a.ev !== undefined ? rupee(a.ev) : "—"}</p>
           </div>
-          <div className="rounded-xl bg-raised/70 px-3 py-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wide text-ink-3">Apply by</p>
-            <p className="text-[13.5px] font-bold">{applyBy ? (applyBy === today ? "Today, 5 PM" : date(applyBy)) : "—"}</p>
+          <div className="min-w-0">
+            <p className="text-[12px] text-ink-3">Apply by</p>
+            <p className="text-[14px] font-semibold tabular-nums">{applyBy ? (applyBy === today ? "Today, 5 PM" : date(applyBy)) : "—"}</p>
           </div>
         </div>
       )}
 
-      <button onClick={() => setOpen(o => !o)} className="mt-3 inline-flex items-center gap-1 text-[13px] font-bold text-brand">
+      <button onClick={() => setOpen(o => !o)} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-ink-2 hover:text-ink">
         Why this score <Icon name="chevronDown" className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <ul className="mt-2 space-y-1.5 animate-fade">
           {a.reasons.map(r => (
             <li key={r} className="flex gap-2 text-[13.5px] text-ink-2">
-              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />{r}
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-ink-3" />{r}
             </li>
           ))}
-          {a.window && <li className="flex gap-2 text-[13.5px] text-ink-2"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-brand" />Funds blocked {date(a.window.from)} → back by {date(a.window.until)} if you apply on the last day</li>}
+          {a.window && <li className="flex gap-2 text-[13.5px] text-ink-2"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-ink-3" />Funds blocked {date(a.window.from)} → back by {date(a.window.until)} if you apply on the last day</li>}
           {row?.skipped && <li className="flex gap-2 text-[13.5px] text-loss"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-loss" />Not in plan: {row.skipped}</li>}
         </ul>
       )}
@@ -133,14 +130,7 @@ export function PlannerView({ onOpenIpo, focusId }) {
 
   return (
     <div>
-      <div className="mb-6 border-b border-line pb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="size-2 rounded-full bg-brand animate-live" />
-          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Capital Allocator</span>
-        </div>
-        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">IPO PLANNER</h1>
-        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">Overlapping IPOs on one calendar, a priority score for each, and the best plan for your budget.</p>
-      </div>
+      <PageHeader title="Planner" description="Which IPOs to apply to, and how many applications fit your budget." />
 
       <section className="card p-5 sm:p-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -153,7 +143,7 @@ export function PlannerView({ onOpenIpo, focusId }) {
           <Field label="PANs / demat accounts" hint={pans.length ? `${pans.length} saved PAN${pans.length > 1 ? "s" : ""}` : "One application per PAN"}>
             <div className="flex items-center gap-2">
               <button onClick={() => setAccounts(a => Math.max(1, Number(a) - 1))} className="size-11 rounded-xl bg-raised font-bold text-[18px]" aria-label="Fewer PANs">−</button>
-              <span className="flex-1 text-center text-[18px] font-extrabold">{accounts}</span>
+              <span className="flex-1 text-center text-[18px] font-bold">{accounts}</span>
               <button onClick={() => setAccounts(a => Math.min(50, Number(a) + 1))} className="size-11 rounded-xl bg-raised font-bold text-[18px]" aria-label="More PANs">+</button>
             </div>
           </Field>
@@ -166,8 +156,8 @@ export function PlannerView({ onOpenIpo, focusId }) {
         </div>
       </section>
 
-      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Applications in plan" value={plan.applications} tone="text-brand" />
+      <div className="mt-4 card p-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stat label="Applications in plan" value={plan.applications} />
         <Stat label="IPOs picked" value={plan.chosen.length} />
         <Stat label="Peak money blocked" value={lakh(plan.peak)} />
         <Stat label="Expected profit" value={rupee(plan.expectedProfit)} tone="text-gain" />
@@ -179,12 +169,12 @@ export function PlannerView({ onOpenIpo, focusId }) {
           <ol className="mt-3 space-y-2">
             {plan.chosen.map((r, i) => (
               <li key={r.ipo.name}>
-                <button onClick={() => onOpenIpo(r.ipo)} className="w-full flex items-start gap-3 rounded-2xl bg-raised/60 active:bg-raised px-3 py-3 text-left">
-                  <span className="mt-0.5 size-6 shrink-0 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">{i + 1}</span>
+                <button onClick={() => onOpenIpo(r.ipo)} className="w-full flex items-start gap-3 rounded-xl bg-raised/60 active:bg-raised px-3 py-3 text-left">
+                  <span className="mt-0.5 size-6 shrink-0 grid place-items-center rounded-full bg-raised text-ink-2 text-[12px] font-semibold">{i + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-2">
                       <span className="font-bold text-[14.5px] leading-snug">{r.ipo.name}</span>
-                      <span className="shrink-0 font-extrabold text-gain text-[14px]">≈ {rupee(r.expected)}</span>
+                      <span className="shrink-0 font-bold text-gain text-[14px]">≈ {rupee(r.expected)}</span>
                     </span>
                     <span className="mt-1 block text-[13px] text-ink-2">{r.apps} PAN{r.apps > 1 ? "s" : ""} × {rupee(r.size.amount)} = <b className="text-ink">{lakh(r.capital)}</b></span>
                     <span className="mt-0.5 block text-[12.5px] text-ink-3">Apply by {r.window.applyBy === todayIso() ? "today 5 PM" : date(r.window.applyBy)} · money back {date(r.window.until)}</span>
@@ -210,17 +200,11 @@ export function PlannerView({ onOpenIpo, focusId }) {
         </section>
       )}
 
-      <h2 className="mt-9 mb-3 text-[19px] font-extrabold tracking-tight flex items-center gap-2">
-        <span className="size-8 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="calendar" className="size-4.5" /></span>
-        IPO calendar
-      </h2>
+      <SectionTitle title="Calendar" />
       <div className="sm:hidden"><AgendaCalendar ipos={calendarIpos} plan={plan} budget={Number(budget) || 0} onOpen={onOpenIpo} /></div>
       <div className="hidden sm:block"><IpoCalendar ipos={calendarIpos} plan={plan} budget={Number(budget) || 0} onOpen={onOpenIpo} /></div>
 
-      <h2 className="mt-9 mb-3 text-[19px] font-extrabold tracking-tight flex items-center gap-2">
-        <span className="size-8 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name="fire" className="size-4.5" /></span>
-        Priority ranking
-      </h2>
+      <SectionTitle title="Ranking" />
       {analyses.length === 0 ? <Empty icon="calendar" title="No open or upcoming IPOs">Check back when new IPOs are announced.</Empty> : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {analyses.map((a, i) => <PickCard key={a.ipo.name} a={a} row={rowFor(a)} rank={i + 1} onOpen={onOpenIpo} focused={focusId === ipoId(a.ipo)} />)}

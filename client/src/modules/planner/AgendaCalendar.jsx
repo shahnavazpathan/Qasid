@@ -65,12 +65,12 @@ export function AgendaCalendar({ ipos, plan, budget, onOpen }) {
               onClick={() => setDay(d)}
               aria-pressed={selected}
               aria-label={`${fmt(d, { weekday: "long", day: "numeric", month: "long" })}, ${ev.length} events`}
-              className={`snap-center shrink-0 w-[52px] rounded-2xl py-2 flex flex-col items-center gap-0.5 transition-colors ${
+              className={`snap-center shrink-0 w-[52px] rounded-xl py-2 flex flex-col items-center gap-0.5 transition-colors ${
                 selected ? "bg-brand text-on-brand" : d === today ? "bg-brand-soft text-brand" : isWeekend(d) ? "bg-raised/50 text-ink-3" : "bg-raised/70"
               }`}
             >
               <span className="text-[10.5px] font-bold uppercase">{fmt(d, { weekday: "short" }).slice(0, 3)}</span>
-              <span className="text-[18px] font-extrabold leading-none">{Number(d.slice(8, 10))}</span>
+              <span className="text-[18px] font-bold leading-none">{Number(d.slice(8, 10))}</span>
               <span className="h-2 flex gap-0.5 items-center">
                 {kinds.map(k => <i key={k} className={`size-1.5 rounded-full ${selected ? "bg-on-brand" : KINDS[k].dot}`} />)}
               </span>
@@ -81,7 +81,7 @@ export function AgendaCalendar({ ipos, plan, budget, onOpen }) {
 
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-baseline justify-between gap-3">
-          <p className="font-extrabold text-[17px]">{d2(day, today)}</p>
+          <p className="font-bold text-[17px]">{d2(day, today)}</p>
           {openCount > 0 && <span className="text-[12.5px] font-bold text-open">{openCount} open for bidding</span>}
         </div>
         {budget > 0 && used > 0 && (
@@ -106,7 +106,7 @@ export function AgendaCalendar({ ipos, plan, budget, onOpen }) {
             const p = planned.get(e.ipo);
             return (
               <li key={e.kind + e.ipo.name}>
-                <button onClick={() => onOpen(e.ipo)} className="w-full flex items-center gap-3 rounded-2xl px-2 py-2.5 text-left active:bg-raised">
+                <button onClick={() => onOpen(e.ipo)} className="w-full flex items-center gap-3 rounded-xl px-2 py-2.5 text-left active:bg-raised">
                   <CompanyLogo name={e.ipo.name} src={e.ipo.logo} size={40} />
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold text-[14.5px] leading-snug truncate">{e.ipo.name}</span>

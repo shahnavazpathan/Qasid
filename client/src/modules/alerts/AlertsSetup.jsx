@@ -28,7 +28,7 @@ function IosSteps() {
         <>Open <b>Qasid</b> from your home screen and tap <b>Turn on alerts</b></>
       ].map((step, i) => (
         <li key={i} className="flex gap-3 text-[14px]">
-          <span className="size-6 shrink-0 grid place-items-center rounded-full bg-brand text-on-brand text-[12px] font-bold">{i + 1}</span>
+          <span className="size-6 shrink-0 grid place-items-center rounded-full bg-raised text-ink-2 text-[12px] font-semibold">{i + 1}</span>
           <span className="pt-0.5">{step}</span>
         </li>
       ))}
@@ -41,20 +41,19 @@ export function AlertsSetup({ compact = false }) {
   const a = useAlerts();
   const { pans, selected } = usePans();
 
-  if (compact && a.push === "on") return null;
+  // Home only shows it when there is something to do (turn on, or install on iPhone first)
+  if (compact && (a.push === "on" || a.push === "denied" || a.push === "unsupported")) return null;
   if (a.push === "checking") return compact ? null : <section className="card p-5 h-40 animate-pulse" />;
 
   const header = (
     <div className="flex items-start gap-3">
-      <span className={`size-11 shrink-0 grid place-items-center rounded-2xl ${a.push === "on" ? "bg-open text-on-brand" : "bg-brand text-on-brand"}`}>
-        <Icon name="bell" className="size-5" />
-      </span>
+      <Icon name={a.push === "on" ? "bell" : "bellOff"} className={`mt-0.5 size-5 shrink-0 ${a.push === "on" ? "text-open" : "text-ink-3"}`} />
       <div className="min-w-0">
-        <p className="font-extrabold text-[16px] leading-snug">{a.push === "on" ? "Allotment alerts are on" : "Get notified the moment allotment is out"}</p>
+        <p className="font-semibold text-[15px] leading-snug">{a.push === "on" ? "Allotment alerts are on" : "Get an alert when allotment is out"}</p>
         <p className="text-[13px] text-ink-3 mt-0.5">
           {a.push === "on"
             ? `This device gets a notification for every new allotment${a.autoCheck && selected.length ? `, with results for your ${selected.length} PAN${selected.length > 1 ? "s" : ""}` : ""}.`
-            : "Works even when Qasid is closed - like a native app."}
+            : "Works even when Qasid is closed."}
         </p>
       </div>
     </div>
@@ -63,7 +62,7 @@ export function AlertsSetup({ compact = false }) {
   let body;
   if (a.push === "needs-install") {
     body = (
-      <div className="mt-3 rounded-2xl bg-raised/70 p-4">
+      <div className="mt-3 rounded-xl bg-raised/70 p-4">
         <p className="text-[13.5px] font-semibold">On iPhone, alerts work once Qasid is on your Home Screen:</p>
         <IosSteps />
       </div>
@@ -76,7 +75,7 @@ export function AlertsSetup({ compact = false }) {
     body = (
       <div className="mt-4 flex flex-wrap gap-2">
         <Button variant="primary" size="md" onClick={a.turnOn} disabled={a.busy} className="flex-1 sm:flex-none whitespace-nowrap">
-          <Icon name="bell" className="size-5" />{a.busy ? "Turning on…" : "Turn on alerts"}
+          {a.busy ? "Turning on…" : "Turn on alerts"}
         </Button>
         {a.canInstall && !a.installed && (
           <Button variant="outline" size="md" onClick={a.install} className="flex-1 sm:flex-none whitespace-nowrap">
@@ -96,7 +95,7 @@ export function AlertsSetup({ compact = false }) {
           <Toggle on={a.autoCheck} onChange={a.setAutoCheck} label="Check my PANs automatically" />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="soft" size="sm" onClick={a.test}><Icon name="bolt" className="size-4" />Send test alert</Button>
+          <Button variant="outline" size="sm" onClick={a.test}>Send test alert</Button>
           <Button variant="ghost" size="sm" onClick={a.turnOff} disabled={a.busy}>Turn off on this device</Button>
           {a.canInstall && !a.installed && <Button variant="outline" size="sm" onClick={a.install}><Icon name="download" className="size-4" />Install app</Button>}
         </div>
@@ -105,7 +104,7 @@ export function AlertsSetup({ compact = false }) {
   }
 
   return (
-    <section id="alerts" className={`card ${compact ? "p-4" : "p-5"} scroll-mt-24 ${a.push === "on" ? "" : "ring-1 ring-brand/25"}`}>
+    <section id="alerts" className={`card ${compact ? "p-4" : "p-5"} scroll-mt-24`}>
       {header}
       {body}
     </section>
