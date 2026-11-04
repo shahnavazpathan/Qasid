@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { api } from "../api/client.js";
+import { useToast } from "../ui/Toast.jsx";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 // Google client id is read from the build at runtime; the script tag loads the GIS library.
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+// Google's library should be initialised only once per page
+let initialized = false;
 
 function loadScript() {
   if (window.google?.accounts?.id) return Promise.resolve();
@@ -23,6 +26,7 @@ function loadScript() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     try {
@@ -40,32 +44,40 @@ export function AuthProvider({ children }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  const signIn = useCallback(async () => {
+  // Draws Google's own button into el. Unlike prompt() (One Tap), it opens Google's sign-in window
+  // even for visitors who aren't logged in to Google yet, or who closed One Tap before.
+  const renderButton = useCallback(async (el, { compact }) => {
     if (!window.google?.accounts?.id) {
       await loadScript();
     }
     if (!window.google?.accounts?.id) throw new Error("Google sign-in script failed to load.");
     if (!GOOGLE_CLIENT_ID) throw new Error("Google sign-in is not configured for this build.");
 
-    return new Promise((resolve, reject) => {
+    if (!initialized) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: async (credentialResponse) => {
           try {
             const res = await api.post("/api/auth/google", { idToken: credentialResponse.credential });
-            const u = { id: res.userId, email: res.email, name: res.name, picture: res.picture };
-            setUser(u);
-            resolve(u);
-          } catch (e) {
-            reject(e);
+            setUser({ id: res.userId, email: res.email, name: res.name, picture: res.picture });
+          } catch {
+            toast("Sign-in failed. Please try again.", null, "alert");
           }
         },
-        // Don't auto-prompt; we drive it from the button
         auto_select: false
       });
-      window.google.accounts.id.prompt();
+      initialized = true;
+    }
+    el.replaceChildren();
+    window.google.accounts.id.renderButton(el, {
+      type: compact ? "icon" : "standard",
+      // The site is always dark (index.css forces it)
+      theme: "filled_black",
+      size: "large",
+      shape: "rectangular",
+      text: "signin"
     });
-  }, []);
+  }, [toast]);
 
   const signOut = useCallback(async () => {
     setUser(null);
@@ -75,6 +87,6 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const value = { user, loading, signIn, signOut, signedIn: !!user };
+  const value = { user, loading, renderButton, signOut, signedIn: !!user };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
