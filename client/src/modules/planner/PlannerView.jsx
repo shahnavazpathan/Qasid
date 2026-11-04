@@ -202,7 +202,11 @@ export function PlannerView({ onOpenIpo, focusId }) {
         </section>
       ) : (
         <section className="mt-4 card p-5 text-[14px] text-ink-2">
-          No IPO fits this budget{category === "shni" ? " — Small HNI applications need just over ₹2 lakh each" : ""}. Try a bigger budget or the Retail category.
+          {!Number(budget)
+            ? "Enter how much money you can keep blocked at once to see your plan."
+            : plan.rows.length === 0
+              ? "None of the open or upcoming IPOs scores high enough to apply right now. The ranking below shows why."
+              : `No recommended IPO fits this budget: the cheapest application needs ${rupee(Math.min(...plan.rows.map(r => r.size.amount)))}.${category === "shni" ? " Small HNI applications need just over ₹2 lakh each - try Retail." : ""}`}
         </section>
       )}
 

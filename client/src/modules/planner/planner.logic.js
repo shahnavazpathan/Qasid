@@ -87,6 +87,16 @@ function gmpTrend(ipo) {
   return change / base; // relative move over the last few sessions
 }
 
+// How far the GMP has slid from its peak (0.3 = 30% below the best it reached). A GMP that halved over a
+// week and then held steady looks flat over the last few sessions, but grey-market interest has faded.
+function gmpFade(ipo) {
+  const pts = (ipo.gmpTrend || []).map(p => p.gmp);
+  if (pts.length < 3) return 0;
+  const peak = Math.max(...pts);
+  const last = pts[pts.length - 1];
+  return peak > 0 ? Math.max(0, (peak - last) / peak) : 0;
+}
+
 // When funds are blocked if you apply on the last day (cheapest for capital), and when they come back
 export function blockWindow(ipo) {
   const close = ipo.closeDate;
@@ -114,12 +124,14 @@ export function analyse(ipo, category) {
   const days = window ? Math.max(1, diffDays(window.from, window.until)) : 3;
   const evPerLakh = (ev / size.amount) * 100000;
   const trend = gmpTrend(ipo);
+  const fade = gmpFade(ipo);
   const qib = categoryTimes(ipo, ["QIB"]);
 
   let score = 0;
   score += Math.max(-30, Math.min(45, e.pct * 1.2));          // listing pop
   score += Math.max(0, Math.min(30, evPerLakh / 150));          // expected ₹ per ₹1L blocked
   score += trend > 0.08 ? 8 : trend < -0.08 ? -10 : 0;          // GMP momentum
+  score += fade >= 0.4 ? -12 : fade >= 0.25 ? -6 : 0;           // GMP well off its peak
   // Only reward QIB demand: institutions usually bid on the last day, so a low live figure means little
   score += qib !== null ? (qib >= 20 ? 10 : qib >= 5 ? 5 : 0) : 0;
   score += ipo.type === "SME" ? -6 : 0;                         // SME: thinner, more volatile listings
@@ -134,6 +146,7 @@ export function analyse(ipo, category) {
   reasons.push(`₹${Math.round(evPerLakh).toLocaleString("en-IN")} expected per ₹1L blocked for ~${days} day${days > 1 ? "s" : ""}`);
   if (trend > 0.08) reasons.push("GMP rising over recent sessions");
   if (trend < -0.08) reasons.push("GMP falling over recent sessions");
+  if (fade >= 0.25) reasons.push(`GMP is ${Math.round(fade * 100)}% below its peak`);
   if (qib !== null && qib >= 20) reasons.push(`Strong institutional demand (QIB ${qib.toFixed(1)}x)`);
   if (ipo.type === "SME") reasons.push("SME issue: higher risk and 2-lot minimum");
   if (category === "retail" && d.times > 1 && ipo.type !== "SME") reasons.push("Apply 1 lot per PAN - extra lots don't improve retail odds");

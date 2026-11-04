@@ -44,7 +44,7 @@ export function IpoPicker() {
       <div className="flex items-center gap-3 rounded-2xl bg-brand-soft/60 ring-1 ring-brand/20 p-3.5">
         <CompanyLogo name={displayName(selected.name)} size={44} />
         <div className="min-w-0 flex-1">
-          <p className="font-bold text-[16px] leading-snug truncate">{displayName(selected.name)}</p>
+          <p className="font-bold text-[16px] leading-snug line-clamp-2">{displayName(selected.name)}</p>
           <p className="text-[12.5px] text-brand font-semibold">{selected.registrar || selected.source}</p>
           {selected.retired && <p className="text-[12px] text-ink-3 mt-0.5">Checker closed by the registrar. Only results Qasid saved earlier are available.</p>}
         </div>
