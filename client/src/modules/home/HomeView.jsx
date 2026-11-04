@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CompanyLogo, GainChip, Icon, PageHeader, SectionTitle, SkeletonCards } from "../../shared/ui/index.js";
+import { Button, CompanyLogo, GainChip, Icon, SkeletonCards } from "../../shared/ui/index.js";
 import { date, num } from "../../shared/lib/format.js";
 import { displayName } from "../../shared/lib/names.js";
 import { estimate } from "../../shared/lib/ipo.js";
@@ -10,18 +10,31 @@ import { QuickCheck } from "../allotment/QuickCheck.jsx";
 import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
 
 // On phones the five tiles sit 3 + 2 (wide) on a 6-column grid, so none is hidden off-screen
-function StatTile({ label, value, dot, onClick, wide }) {
+function StatTile({ label, value, icon, tone, onClick, wide }) {
   return (
-    <button onClick={onClick} className={`${wide ? "col-span-3" : "col-span-2"} sm:col-span-1 min-w-0 text-left rounded-xl bg-surface border border-line hover:border-ink-3/40 transition-colors px-3.5 py-3`}>
-      <p className="text-[24px] font-bold leading-none tabular-nums">{value ?? "–"}</p>
-      <p className="mt-1.5 flex items-center gap-1.5 text-[12.5px] text-ink-2 truncate"><span className={`size-1.5 shrink-0 rounded-full ${dot}`} />{label}</p>
+    <button onClick={onClick} className={`${wide ? "col-span-3" : "col-span-2"} sm:col-span-1 min-w-0 text-left rounded-2xl bg-canvas ring-1 ring-line hover:ring-brand/40 transition-shadow p-3 sm:p-3.5`}>
+      <span className={`size-8 grid place-items-center rounded-xl ${tone}`}><Icon name={icon} className="size-4.5" /></span>
+      <p className="mt-2.5 text-[26px] font-extrabold leading-none">{value ?? "–"}</p>
+      <p className="mt-1 text-[12px] font-semibold text-ink-2 truncate">{label}</p>
     </button>
+  );
+}
+
+function SectionHead({ title, icon, action, onAction }) {
+  return (
+    <div className="flex items-center justify-between mb-3 mt-9">
+      <h2 className="flex items-center gap-2 text-[19px] font-extrabold tracking-tight">
+        <span className="size-8 grid place-items-center rounded-xl bg-brand-soft text-brand"><Icon name={icon} className="size-4.5" /></span>
+        {title}
+      </h2>
+      {action && <button onClick={onAction} className="text-[13.5px] font-bold text-brand hover:underline inline-flex items-center gap-1">{action}<Icon name="arrowRight" className="size-4" /></button>}
+    </div>
   );
 }
 
 function Row({ ipo, right, onOpen }) {
   return (
-    <button onClick={() => onOpen(ipo)} className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-raised/70 text-left">
+    <button onClick={() => onOpen(ipo)} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-raised/70 text-left">
       <CompanyLogo name={ipo.name} src={ipo.logo} size={40} />
       <span className="min-w-0 flex-1">
         <span className="block font-bold text-[14.5px] truncate">{ipo.name}</span>
@@ -46,7 +59,7 @@ function QuickAllotment() {
           <button
             key={ipoKey(i)}
             onClick={() => setPick(i)}
-            className={`shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors ${ipoKey(i) === ipoKey(current) ? "bg-ink text-canvas" : "bg-surface border border-line text-ink-2 hover:text-ink"}`}
+            className={`shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-colors ${ipoKey(i) === ipoKey(current) ? "bg-open text-on-brand" : "bg-surface ring-1 ring-line text-ink-2 hover:text-ink"}`}
           >
             {displayName(i.name).replace(/\s+(limited|ltd\.?)$/i, "")}
           </button>
@@ -67,6 +80,7 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
     .sort((a, b) => estimate(b).pct - estimate(a).pct)
     .slice(0, 5), [board]);
   const recentListings = useMemo(() => (board?.listed || []).filter(i => i.listingGain !== null && i.listingGain !== undefined).slice(0, 6), [board]);
+  const maxGain = Math.max(1, ...recentListings.map(i => Math.abs(i.listingGain)));
   const events = [
     ...m.today.opening.map(i => ["Opens today", i, "text-upcoming bg-upcoming-soft"]),
     ...m.today.closing.map(i => ["Closes today", i, "text-closed bg-closed-soft"]),
@@ -76,22 +90,35 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
 
   return (
     <div>
-      <PageHeader title="Today" description={new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}>
-        <LiveBadge />
-      </PageHeader>
-      <section className="grid grid-cols-6 sm:grid-cols-5 gap-2.5">
-        <StatTile label="Open now" value={m.counts.open} dot="bg-open" onClick={() => onBrowse("open")} />
-        <StatTile label="Last day" value={board ? m.today.closing.length : null} dot="bg-closed" onClick={() => onBrowse("open")} />
-        <StatTile label="Upcoming" value={m.counts.upcoming} dot="bg-upcoming" onClick={() => onBrowse("upcoming")} />
-        <StatTile label="Allotment today" value={board ? m.today.allotment.length : null} dot="bg-gain" onClick={() => onBrowse("closed")} wide />
-        <StatTile label="Listing today" value={board ? m.today.listing.length : null} dot="bg-listed" onClick={() => onBrowse("listed")} wide />
+      <section className="hero-gradient text-ink rounded-[20px] p-5 sm:p-8 ring-1 ring-line overflow-hidden relative bg-surface shadow-pop">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Icon name="bolt" className="size-32 text-brand" />
+        </div>
+        <div className="relative flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="size-2 rounded-full bg-open animate-live" />
+              <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Live Terminal · {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</span>
+            </div>
+            <h1 className="text-[28px] sm:text-[40px] leading-none font-extrabold tracking-tight">MARKET PULSE</h1>
+            <p className="hidden sm:block mt-2 text-ink-2 max-w-lg text-[15px]">High-velocity GMP, live category subscription data, and instant registrar allotment tracking.</p>
+          </div>
+          <LiveBadge />
+        </div>
+        <div className="relative mt-5 sm:mt-6 grid grid-cols-6 sm:grid-cols-5 gap-2.5 sm:gap-3">
+          <StatTile label="Open now" value={m.counts.open} icon="bolt" tone="bg-open text-on-brand" onClick={() => onBrowse("open")} />
+          <StatTile label="Last day" value={board ? m.today.closing.length : null} icon="clock" tone="bg-closed text-on-brand" onClick={() => onBrowse("open")} />
+          <StatTile label="Upcoming" value={m.counts.upcoming} icon="calendar" tone="bg-upcoming text-on-brand" onClick={() => onBrowse("upcoming")} />
+          <StatTile label="Allotment today" value={board ? m.today.allotment.length : null} icon="check" tone="bg-gain text-on-brand" onClick={() => onBrowse("closed")} wide />
+          <StatTile label="Listing today" value={board ? m.today.listing.length : null} icon="trendUp" tone="bg-listed text-on-brand" onClick={() => onBrowse("listed")} wide />
+        </div>
       </section>
 
       {events.length > 0 && (
         <div className="mt-5 flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {events.map(([label, ipo, tone]) => (
-            <button key={label + ipo.name} onClick={() => onOpenIpo(ipo)} className="shrink-0 flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full bg-surface border border-line hover:border-ink-3/40">
-              <CompanyLogo name={ipo.name} src={ipo.logo} size={26} className="rounded-full!" />
+            <button key={label + ipo.name} onClick={() => onOpenIpo(ipo)} className="shrink-0 card flex items-center gap-2.5 pl-2 pr-4 py-2 rounded-full!">
+              <CompanyLogo name={ipo.name} src={ipo.logo} size={30} className="rounded-full!" />
               <span className="text-[13px] font-semibold max-w-[180px] truncate">{ipo.name}</span>
               <span className={`h-6 px-2 rounded-full text-[11.5px] font-bold grid place-items-center ${tone}`}>{label}</span>
             </button>
@@ -101,10 +128,10 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
 
       <div className="mt-5"><AlertsSetup compact /></div>
 
-      <SectionTitle title="Check allotment" action="All IPOs" onAction={() => onCheckAllotment(null)} />
+      <SectionHead title="Check allotment" icon="check" action="All IPOs" onAction={() => onCheckAllotment(null)} />
       <QuickAllotment />
 
-      <SectionTitle title="Open for bidding" action="View all" onAction={() => onBrowse("open")} />
+      <SectionHead title="Open for bidding" icon="bolt" action="View all" onAction={() => onBrowse("open")} />
       {!board ? <SkeletonCards count={3} /> : board.open.length === 0 ? (
         <div className="card p-6 text-ink-3">No IPO is open right now — see what's <button onClick={() => onBrowse("upcoming")} className="text-brand font-bold">coming up</button>.</div>
       ) : (
@@ -115,23 +142,23 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
         </div>
       )}
 
-      <a href="#/planner" className="mt-4 card px-4 py-3.5 flex items-center gap-3 hover:border-ink-3/40 transition-colors">
-        <Icon name="calendar" className="size-5 shrink-0 text-ink-3" />
+      <a href="#/planner" className="mt-6 card p-5 flex items-center gap-4 hover:ring-2 hover:ring-brand/40 transition-shadow">
+        <span className="size-12 shrink-0 grid place-items-center rounded-2xl bg-brand text-on-brand"><Icon name="calendar" className="size-6" /></span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-[15px]">Which IPO should you apply to?</span>
-          <span className="block text-[13px] text-ink-3">Scores and a plan for your budget, in the planner</span>
+          <span className="block font-extrabold text-[16px]">Which IPO should you apply to?</span>
+          <span className="block text-[13.5px] text-ink-3">See overlapping IPOs on a calendar, priority scores and the best plan for your budget and PANs.</span>
         </span>
-        <Icon name="arrowRight" className="size-4 shrink-0 text-ink-3" />
+        <span className="hidden sm:inline-flex items-center gap-1 text-[13.5px] font-bold text-brand">Open planner<Icon name="arrowRight" className="size-4" /></span>
       </a>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div>
-          <SectionTitle title="Upcoming" action="All" onAction={() => onBrowse("upcoming")} />
+          <SectionHead title="Upcoming" icon="calendar" action="All" onAction={() => onBrowse("upcoming")} />
           <div className="card p-2">
             {(board?.upcoming || []).slice(0, 6).map(ipo => (
               <Row key={ipo.name} ipo={ipo} onOpen={onOpenIpo} right={
                 <span className="text-right shrink-0">
-                  <span className="block text-[13px] font-semibold">{ipo.openDate ? date(ipo.openDate) : "TBA"}</span>
+                  <span className="block text-[12.5px] font-bold text-upcoming">{ipo.openDate ? date(ipo.openDate) : "TBA"}</span>
                   <span className="block text-[11.5px] text-ink-3">opens</span>
                 </span>
               } />
@@ -141,14 +168,14 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
         </div>
 
         <div>
-          <SectionTitle title="Top GMP" />
+          <SectionHead title="Top GMP" icon="fire" />
           <div className="card p-2">
             {topGmp.map((ipo, i) => {
               const e = estimate(ipo);
               return (
                 <Row key={ipo.name} ipo={ipo} onOpen={onOpenIpo} right={
                   <span className="text-right shrink-0">
-                    <span className={`block text-[14px] font-bold tabular-nums ${e.gmp >= 0 ? "text-gain" : "text-loss"}`}>{e.pct > 0 ? "+" : ""}{e.pct.toFixed(1)}%</span>
+                    <span className={`block text-[14px] font-extrabold ${e.gmp >= 0 ? "text-gain" : "text-loss"}`}>{e.pct > 0 ? "+" : ""}{e.pct.toFixed(1)}%</span>
                     <span className="block text-[11.5px] text-ink-3">#{i + 1} · ₹{num(e.gmp)}</span>
                   </span>
                 } />
@@ -159,16 +186,33 @@ export function HomeView({ onOpenIpo, onCheckAllotment, onBrowse }) {
         </div>
 
         <div>
-          <SectionTitle title="Recent listings" action="All" onAction={() => onBrowse("listed")} />
-          <div className="card p-2">
+          <SectionHead title="Recent listings" icon="trendUp" action="All" onAction={() => onBrowse("listed")} />
+          <div className="card p-4 space-y-3">
             {recentListings.map(ipo => (
-              <Row key={ipo.name} ipo={ipo} onOpen={onOpenIpo} right={<GainChip value={ipo.listingGain} />} />
+              <button key={ipo.name} onClick={() => onOpenIpo(ipo)} className="w-full text-left">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[13.5px] font-semibold truncate">{ipo.name}</span>
+                  <GainChip value={ipo.listingGain} />
+                </div>
+                <div className="h-2 rounded-full bg-raised overflow-hidden">
+                  <div className={`h-full rounded-full animate-grow ${ipo.listingGain >= 0 ? "bg-gain" : "bg-loss"}`} style={{ width: `${Math.max(4, (Math.abs(ipo.listingGain) / maxGain) * 100)}%` }} />
+                </div>
+              </button>
             ))}
-            {board && !recentListings.length && <p className="p-4 text-ink-3 text-[14px]">No recent listings.</p>}
+            {board && !recentListings.length && <p className="text-ink-3 text-[14px]">No recent listings.</p>}
           </div>
         </div>
       </div>
 
+      <section className="mt-9 card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 overflow-hidden relative">
+        <div className="absolute -left-10 -top-10 size-40 rounded-full bg-brand-soft" aria-hidden="true" />
+        <span className="relative size-14 grid place-items-center rounded-2xl brand-gradient text-white"><Icon name="bell" className="size-7" /></span>
+        <div className="relative flex-1">
+          <p className="font-extrabold text-[18px]">Never miss an allotment</p>
+          <p className="text-ink-3 text-[14px]">Watch an IPO with ★ and Qasid alerts you when it opens, closes and lists — and checks every saved PAN the moment allotment is out.</p>
+        </div>
+        <Button variant="primary" className="relative" onClick={() => onBrowse("open")}>Pick IPOs to watch</Button>
+      </section>
     </div>
   );
 }

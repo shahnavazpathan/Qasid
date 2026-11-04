@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Empty, Icon, PageHeader, useToast } from "../../shared/ui/index.js";
+import { Button, Empty, Icon, useToast } from "../../shared/ui/index.js";
 import { num } from "../../shared/lib/format.js";
 import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
@@ -30,24 +30,29 @@ export function PansView() {
 
   return (
     <div>
-      <PageHeader
-        title="My PANs"
-        description={signedIn && !consentNeeded
-          ? "Saved to your account, on every device."
-          : "Saved only in this browser. Sign in to keep them on every device."}
-      />
+      <div className="mb-6 border-b border-line pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="size-2 rounded-full bg-brand animate-live" />
+          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Vault</span>
+        </div>
+        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">SAVED PANS</h1>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">
+          {signedIn && !consentNeeded
+            ? "Your family's PANs, saved to your account and shown on every device."
+            : "Your family's PANs, saved only in this browser. Sign in to keep them on every device."}
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
         <div className="space-y-4 min-w-0">
-          {pans.length > 0 && (
-            <p className="text-[14px] text-ink-2">
-              <span className="font-semibold text-ink">{pans.length}</span> PAN{pans.length === 1 ? "" : "s"} saved
-              {wins.length > 0 && <> · <span className="font-semibold text-gain">{wins.length}</span> allotment{wins.length === 1 ? "" : "s"} won · {num(shares)} shares</>}
-            </p>
-          )}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card p-4"><p className="text-[26px] font-extrabold text-brand">{pans.length}</p><p className="text-[12.5px] font-semibold text-ink-3">PANs saved</p></div>
+            <div className="card p-4"><p className="text-[26px] font-extrabold text-gain">{wins.length}</p><p className="text-[12.5px] font-semibold text-ink-3">Allotments won</p></div>
+            <div className="card p-4"><p className="text-[26px] font-extrabold text-listed">{num(shares)}</p><p className="text-[12.5px] font-semibold text-ink-3">Shares received</p></div>
+          </div>
 
           <section className="card p-5">
-            <h2 className="font-semibold text-[15px] mb-3">Add PANs</h2>
+            <h2 className="font-bold text-[16px] mb-3">Add PANs</h2>
             <PanAdder />
             <p className="mt-2 text-[12.5px] text-ink-3">Paste many at once, separated by commas or new lines. Add a nickname after a space.</p>
           </section>
@@ -69,7 +74,7 @@ export function PansView() {
                   const won = past.filter(h => h.status === "allotted").length;
                   const expanded = openPan === p.pan;
                   return (
-                    <li key={p.pan} className="rounded-xl hover:bg-raised/50">
+                    <li key={p.pan} className="rounded-2xl hover:bg-raised/50">
                       <div className="flex items-center gap-3 px-3 py-3">
                         <PanAvatar pan={p.pan} label={p.nickname || p.name} size={42} />
                         <button onClick={() => setOpenPan(expanded ? null : p.pan)} className="min-w-0 flex-1 text-left">

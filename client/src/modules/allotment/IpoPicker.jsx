@@ -41,16 +41,16 @@ export function IpoPicker() {
 
   if (selected && !editing) {
     return (
-      <div className="flex items-center gap-3 rounded-xl bg-raised p-3">
-        <CompanyLogo name={displayName(selected.name)} size={40} />
+      <div className="flex items-center gap-3 rounded-2xl bg-brand-soft/60 ring-1 ring-brand/20 p-3.5">
+        <CompanyLogo name={displayName(selected.name)} size={44} />
         <div className="min-w-0 flex-1">
           <p className="font-bold text-[16px] leading-snug line-clamp-2">{displayName(selected.name)}</p>
-          <p className="text-[12.5px] text-ink-3">{selected.registrar || selected.source}</p>
+          <p className="text-[12.5px] text-brand font-semibold">{selected.registrar || selected.source}</p>
           {selected.retired && <p className="text-[12px] text-ink-3 mt-0.5">Checker closed by the registrar. Only results Qasid saved earlier are available.</p>}
         </div>
         <button
           onClick={() => { setEditing(true); setActive(0); requestAnimationFrame(() => input.current?.focus()); }}
-          className="shrink-0 h-9 px-3.5 rounded-lg bg-surface border border-line text-[13px] font-semibold hover:bg-canvas"
+          className="shrink-0 h-9 px-3.5 rounded-xl bg-surface ring-1 ring-line text-[13px] font-semibold hover:ring-brand"
         >
           Change
         </button>
@@ -87,7 +87,7 @@ export function IpoPicker() {
           disabled={loading}
           autoComplete="off"
           spellCheck="false"
-          className="w-full h-12 pl-10 pr-4 rounded-xl bg-raised text-[15px] placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand"
+          className="w-full h-12 pl-10 pr-4 rounded-2xl bg-raised text-[15px] placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand"
         />
       </div>
       {loadError && <p className="mt-3 text-[14px] text-loss">{loadError}</p>}

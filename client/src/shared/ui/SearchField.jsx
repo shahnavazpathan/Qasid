@@ -14,7 +14,7 @@ export const SearchField = forwardRef(function SearchField({ value, onChange, pl
         aria-label={placeholder}
         autoComplete="off"
         spellCheck="false"
-        className="w-full h-11 pl-10 pr-10 rounded-xl bg-surface ring-1 ring-line text-ink placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand transition-shadow"
+        className="w-full h-11 pl-10 pr-10 rounded-2xl bg-surface ring-1 ring-line text-ink placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand transition-shadow"
         {...props}
       />
       {value ? (

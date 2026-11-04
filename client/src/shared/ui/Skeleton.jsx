@@ -4,7 +4,7 @@ export function SkeletonCards({ count = 6 }) {
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="card p-5 animate-pulse">
           <div className="flex gap-3">
-            <div className="size-11 rounded-xl bg-raised" />
+            <div className="size-11 rounded-2xl bg-raised" />
             <div className="flex-1 space-y-2 pt-1">
               <div className="h-4 rounded bg-raised w-3/4" />
               <div className="h-3 rounded bg-raised w-1/3" />
@@ -23,7 +23,7 @@ export function SkeletonCards({ count = 6 }) {
 export function SkeletonRows({ rows = 5 }) {
   return (
     <div aria-busy="true" aria-label="Loading" className="space-y-3">
-      {Array.from({ length: rows }, (_, i) => <div key={i} className="h-14 rounded-xl bg-raised animate-pulse" />)}
+      {Array.from({ length: rows }, (_, i) => <div key={i} className="h-14 rounded-2xl bg-raised animate-pulse" />)}
     </div>
   );
 }

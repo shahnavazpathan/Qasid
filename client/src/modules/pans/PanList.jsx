@@ -48,9 +48,9 @@ export function PanAdder({ compact = false }) {
           autoComplete="off"
           spellCheck="false"
           autoCapitalize="characters"
-          className={`flex-1 min-w-0 ${compact ? "h-11" : "h-12"} px-4 rounded-xl bg-raised font-mono text-[14px] uppercase placeholder:normal-case placeholder:font-sans placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand`}
+          className={`flex-1 min-w-0 ${compact ? "h-11" : "h-12"} px-4 rounded-2xl bg-raised font-mono text-[14px] uppercase placeholder:normal-case placeholder:font-sans placeholder:text-ink-3 outline-none focus:ring-2 focus:ring-brand`}
         />
-        <button type="submit" disabled={!draft.trim()} className={`${compact ? "h-11" : "h-12"} px-4 rounded-xl bg-brand-soft text-brand font-bold inline-flex items-center gap-1.5 disabled:opacity-40`}>
+        <button type="submit" disabled={!draft.trim()} className={`${compact ? "h-11" : "h-12"} px-4 rounded-2xl bg-brand-soft text-brand font-bold inline-flex items-center gap-1.5 disabled:opacity-40`}>
           <Icon name="plus" className="size-4.5" />Add
         </button>
       </div>
@@ -84,7 +84,7 @@ export function PanList() {
               const on = selected.includes(p.pan);
               const label = [p.nickname, p.name].filter(Boolean).join(" · ");
               return (
-                <li key={p.pan} className={`group flex items-center rounded-xl transition-colors ${on ? "bg-brand-soft/70 ring-1 ring-brand/25" : "bg-raised/60"}`}>
+                <li key={p.pan} className={`group flex items-center rounded-2xl transition-colors ${on ? "bg-brand-soft/70 ring-1 ring-brand/25" : "bg-raised/60"}`}>
                   <button role="checkbox" aria-checked={on} onClick={() => toggle(p.pan)} className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 text-left">
                     <Check on={on} />
                     <PanAvatar pan={p.pan} label={p.nickname || p.name} size={32} />

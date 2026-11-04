@@ -24,7 +24,7 @@ export function ToastProvider({ children }) {
       {children}
       <div aria-live="polite" className="fixed inset-x-0 bottom-24 sm:bottom-8 z-[60] flex justify-center pointer-events-none px-4">
         {toast && (
-          <div key={toast.id} className="pointer-events-auto flex items-center gap-3 rounded-xl bg-ink text-canvas pl-4 pr-2 min-h-12 py-2 text-[14px] font-medium shadow-pop animate-rise max-w-[560px]">
+          <div key={toast.id} className="pointer-events-auto flex items-center gap-3 rounded-2xl bg-ink text-canvas pl-4 pr-2 min-h-12 py-2 text-[14px] font-medium shadow-pop animate-rise max-w-[560px]">
             <Icon name={icon} className={`size-5 shrink-0 ${colour}`} />
             <span>{toast.message}</span>
             {toast.action && (

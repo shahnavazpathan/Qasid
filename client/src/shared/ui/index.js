@@ -4,7 +4,6 @@ export { SearchField } from "./SearchField.jsx";
 export { Sheet } from "./Sheet.jsx";
 export { Dialog } from "./Dialog.jsx";
 export { Empty } from "./Empty.jsx";
-export { PageHeader, SectionTitle } from "./PageHeader.jsx";
 export { SkeletonCards, SkeletonRows } from "./Skeleton.jsx";
 export { ToastProvider, useToast } from "./Toast.jsx";
 export { ThemeToggle } from "./ThemeToggle.jsx";

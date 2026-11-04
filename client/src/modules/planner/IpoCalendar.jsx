@@ -53,12 +53,12 @@ export function IpoCalendar({ ipos, plan, budget, onOpen }) {
         <div className="min-w-max">
           {/* Header: days */}
           <div className="flex border-b border-line bg-surface sticky top-0">
-            <div className="sticky left-0 z-10 w-[180px] sm:w-[220px] shrink-0 bg-surface border-r border-line px-4 py-2 text-[12.5px] font-medium text-ink-3 flex items-end">IPO</div>
+            <div className="sticky left-0 z-10 w-[180px] sm:w-[220px] shrink-0 bg-surface border-r border-line px-4 py-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3 flex items-end">IPO</div>
             <div style={{ ...grid, width }}>
               {days.map(d => (
                 <div key={d} className={`text-center py-2 ${d === today ? "bg-brand text-on-brand rounded-b-lg" : isWeekend(d) ? "text-ink-3 bg-raised/50" : ""}`}>
                   <div className="text-[10px] font-semibold uppercase">{weekday(d).slice(0, 2)}</div>
-                  <div className="text-[14px] font-bold leading-tight">{dayNum(d)}</div>
+                  <div className="text-[14px] font-extrabold leading-tight">{dayNum(d)}</div>
                   {(dayNum(d) === 1 || d === days[0]) && <div className="text-[9.5px] font-semibold uppercase opacity-80">{monthShort(d)}</div>}
                 </div>
               ))}
@@ -73,7 +73,7 @@ export function IpoCalendar({ ipos, plan, budget, onOpen }) {
                 const n = overlap.get(d).length;
                 return (
                   <div key={d} className="flex justify-center" title={overlap.get(d).map(i => i.name).join(", ")}>
-                    {n > 0 && <span className={`size-7 grid place-items-center rounded-lg text-[12px] font-bold ${overlapTone(n)}`}>{n}</span>}
+                    {n > 0 && <span className={`size-7 grid place-items-center rounded-lg text-[12px] font-extrabold ${overlapTone(n)}`}>{n}</span>}
                   </div>
                 );
               })}

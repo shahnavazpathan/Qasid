@@ -17,11 +17,14 @@ const BROKERS = [
   ["Angel One", "https://www.angelone.in/ipo"]
 ];
 
-function Card({ title, children, className = "" }) {
+function Card({ title, icon, children, className = "" }) {
   return (
     <section className={`card p-5 ${className}`}>
       {title && (
-        <h3 className="font-semibold text-[15px] mb-3">{title}</h3>
+        <h3 className="flex items-center gap-2 font-bold text-[15px] mb-4">
+          {icon && <span className="size-7 grid place-items-center rounded-lg bg-brand-soft text-brand"><Icon name={icon} className="size-4" /></span>}
+          {title}
+        </h3>
       )}
       {children}
     </section>
@@ -30,9 +33,9 @@ function Card({ title, children, className = "" }) {
 
 function Fact({ label, value, accent }) {
   return (
-    <div className="min-w-0 py-1">
-      <p className="text-[12.5px] text-ink-3">{label}</p>
-      <p className={`mt-0.5 font-semibold text-[15px] tabular-nums ${accent || ""}`}>{value}</p>
+    <div className="rounded-2xl bg-raised/70 px-3.5 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className={`mt-0.5 font-bold text-[15px] ${accent || ""}`}>{value}</p>
     </div>
   );
 }
@@ -47,16 +50,19 @@ function Timeline({ ipo }) {
   const nextIdx = steps.findIndex(([, d]) => d >= today);
 
   return (
-    <Card title="Timeline">
+    <Card title="Timeline" icon="calendar">
       <ol className="relative">
         {steps.map(([label, d, icon], i) => {
           const done = nextIdx === -1 || i < nextIdx;
           const current = i === nextIdx;
           return (
-            <li key={label} className="flex items-center gap-3 py-2">
-              <span className={`size-2 shrink-0 rounded-full ${done ? "bg-ink-3" : current ? "bg-brand" : "border border-ink-3"}`} />
-              <span className={`flex-1 text-[14px] ${current ? "font-semibold text-ink" : done ? "text-ink-3" : "text-ink-2"}`}>{label}</span>
-              <span className={`text-[14px] tabular-nums ${current ? "font-semibold text-ink" : "text-ink-3"}`}>{date(d, true)}</span>
+            <li key={label} className="relative flex items-center gap-3 pb-4 last:pb-0">
+              {i < steps.length - 1 && <span className={`absolute left-[15px] top-8 bottom-0 w-0.5 ${done ? "bg-open" : "bg-line"}`} />}
+              <span className={`relative z-[1] size-8 grid place-items-center rounded-full ${done ? "bg-open text-on-brand" : current ? "brand-gradient text-white ring-4 ring-brand/20" : "bg-raised text-ink-3"}`}>
+                <Icon name={done ? "check" : icon} className="size-4" />
+              </span>
+              <span className={`flex-1 font-semibold ${current ? "text-brand" : done ? "text-ink-2" : "text-ink"}`}>{label}</span>
+              <span className={`text-[14px] font-bold ${current ? "text-brand" : "text-ink-2"}`}>{date(d, true)}</span>
             </li>
           );
         })}
@@ -88,7 +94,7 @@ function Overview({ ipo }) {
       <Timeline ipo={ipo} />
 
       {total > 0 && (
-        <Card title="Issue structure">
+        <Card title="Issue structure" icon="layers">
           <div className="flex h-3 rounded-full overflow-hidden bg-raised">
             {fresh > 0 && <div className="bg-brand animate-grow" style={{ width: `${(fresh / total) * 100}%` }} />}
             {ofs > 0 && <div className="bg-sme animate-grow" style={{ width: `${(ofs / total) * 100}%` }} />}
@@ -102,7 +108,7 @@ function Overview({ ipo }) {
       )}
 
       {(ipo.registrarName || ipo.leadManagers) && (
-        <Card title="Intermediaries">
+        <Card title="Intermediaries" icon="shield">
           {ipo.registrarName && <p className="text-[14px]"><span className="text-ink-3">Registrar · </span><b>{ipo.registrarName}</b></p>}
           {ipo.leadManagers && <p className="mt-2 text-[14px]"><span className="text-ink-3">Lead managers · </span>{ipo.leadManagers}</p>}
         </Card>
@@ -145,7 +151,7 @@ function GmpTab({ ipo }) {
         <Fact label="Est. listing price" value={rupees(e.price)} />
         <Fact label={`Est. profit (${lots} lot${lots > 1 ? "s" : ""})`} value={e.perLot !== null ? `${e.perLot >= 0 ? "+" : "−"}₹${num(Math.abs(e.perLot * lots))}` : "—"} accent={tone} />
       </div>
-      <Card title="GMP trend">
+      <Card title="GMP trend" icon="trendUp">
         {points.length > 1 ? (
           <>
             <LineChart points={points} format={v => `₹${v}`} className={tone} />
@@ -161,10 +167,10 @@ function GmpTab({ ipo }) {
         {ipo.gmpUpdated && <p className="mt-3 text-[12.5px] text-ink-3">Last GMP update {ipo.gmpUpdated}</p>}
       </Card>
       {series.length > 1 && (
-        <Card title="Day-wise GMP">
+        <Card title="Day-wise GMP" icon="calendar">
           <table className="w-full text-[14px]">
             <thead>
-              <tr className="text-ink-3 text-[12px] font-medium">
+              <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
                 <th className="text-left font-semibold pb-2">Date</th>
                 <th className="text-right font-semibold pb-2">GMP</th>
                 <th className="text-right font-semibold pb-2">Est. listing</th>
@@ -209,23 +215,23 @@ function SubscriptionTab({ ipo, loading }) {
   }
   return (
     <div className="space-y-4">
-      <div className="card p-5">
-        <p className="text-ink-3 text-[13px]">Overall subscription</p>
-        <p className="mt-1 text-[32px] leading-none font-bold tabular-nums">{sub.total ? `${Number(sub.total).toFixed(2)}x` : "—"}</p>
+      <div className="card p-5 hero-gradient text-ink">
+        <p className="text-ink-3 text-[12px] font-semibold uppercase tracking-wide">Overall subscription</p>
+        <p className="mt-1 text-[40px] leading-none font-extrabold">{sub.total ? `${Number(sub.total).toFixed(2)}x` : "—"}</p>
         <p className="mt-2 text-ink-2 text-[13px]">
           {ipo.applications ? `${num(ipo.applications)} applications · ` : ""}{sub.updatedAt ? `as of ${sub.updatedAt}` : "live"}
         </p>
       </div>
       {categories.length > 0 && (
-        <Card title="By category">
+        <Card title="By category" icon="chart">
           <SubscriptionBars categories={categories} />
         </Card>
       )}
       {days.length > 0 && (
-        <Card title="Day-wise">
+        <Card title="Day-wise" icon="calendar">
           <table className="w-full text-[14px]">
             <thead>
-              <tr className="text-ink-3 text-[12px] font-medium">
+              <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
                 <th className="text-left font-semibold pb-2">Day</th>
                 {dayCols.map(c => <th key={c} className="text-right font-semibold pb-2">{c}</th>)}
                 <th className="text-right font-semibold pb-2">Total</th>
@@ -256,10 +262,10 @@ function CalculatorTab({ ipo }) {
   const shares = lots * ipo.lotSize;
   return (
     <div className="space-y-4">
-      <Card title="Application size">
+      <Card title="Application size" icon="calculator">
         <table className="w-full text-[14px]">
           <thead>
-            <tr className="text-ink-3 text-[12px] font-medium">
+            <tr className="text-ink-3 text-[11.5px] uppercase tracking-wide">
               <th className="text-left font-semibold pb-2">Category</th>
               <th className="text-right font-semibold pb-2">Lots</th>
               <th className="text-right font-semibold pb-2">Shares</th>
@@ -278,11 +284,11 @@ function CalculatorTab({ ipo }) {
           </tbody>
         </table>
       </Card>
-      <Card title="Your application">
+      <Card title="Your application" icon="sparkles">
         <div className="flex items-center gap-3">
           <button onClick={() => setLots(l => Math.max(1, l - 1))} className="size-11 rounded-xl bg-raised text-[20px] font-bold" aria-label="Fewer lots">−</button>
           <div className="flex-1 text-center">
-            <p className="text-[28px] font-bold leading-none">{lots}</p>
+            <p className="text-[28px] font-extrabold leading-none">{lots}</p>
             <p className="text-[12px] text-ink-3 mt-1">lot{lots > 1 ? "s" : ""} · {num(shares)} shares</p>
           </div>
           <button onClick={() => setLots(l => l + 1)} className="size-11 rounded-xl bg-raised text-[20px] font-bold" aria-label="More lots">+</button>
@@ -308,7 +314,7 @@ function DocsTab({ ipo, detail }) {
   ].filter(Boolean);
   return (
     <div className="space-y-4">
-      <Card title="Offer documents">
+      <Card title="Offer documents" icon="file">
         {docs.length ? (
           <ul className="space-y-2">
             {docs.map(d => (
@@ -324,7 +330,7 @@ function DocsTab({ ipo, detail }) {
         ) : <p className="text-ink-3 text-[14px]">No documents published yet.</p>}
       </Card>
       {links.length > 0 && (
-        <Card title="More on this IPO">
+        <Card title="More on this IPO" icon="arrowUpRight">
           <div className="flex flex-wrap gap-2">{links.map(([label, url]) => <LinkButton key={url} href={url}>{label} <Icon name="arrowUpRight" className="size-3.5" /></LinkButton>)}</div>
         </Card>
       )}
@@ -366,41 +372,41 @@ export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
       <button onClick={onBack} className="mb-4 -ml-1 h-9 px-2 inline-flex items-center gap-1.5 rounded-xl text-[14px] font-semibold text-ink-2 hover:text-ink hover:bg-raised">
         <Icon name="arrowRight" className="size-4 rotate-180" />Back
       </button>
-      <header>
+      <header className="hero-gradient text-ink px-5 sm:px-8 pt-6 sm:pt-8 pb-6 rounded-[28px] ring-1 ring-brand/15">
         <div className="flex items-start gap-4">
-          <CompanyLogo name={ipo.name} src={ipo.logo} size={56} className="ring-1 ring-line" />
+          <CompanyLogo name={ipo.name} src={ipo.logo} size={64} className="ring-1 ring-line" />
           <div className="min-w-0">
-            <h1 className="text-[22px] sm:text-[28px] leading-tight font-bold tracking-tight text-balance">{ipo.name}</h1>
+            <h1 className="text-[24px] sm:text-[30px] leading-tight font-extrabold tracking-tight">{ipo.name}</h1>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <StageChip status={ipo.status} />
               <TypeChip type={ipo.type} />
-              {ipo.symbol && <Chip>{ipo.symbol}</Chip>}
+              {ipo.symbol && <Chip className="bg-surface! text-ink-2!">{ipo.symbol}</Chip>}
             </div>
           </div>
         </div>
-        <div className="mt-5 card px-4 py-3.5 grid grid-cols-3 gap-3">
-          <div className="min-w-0">
-            <p className="text-[12px] text-ink-3">Price</p>
-            <p className="font-semibold text-[14px] tabular-nums truncate">{priceBand(ipo)}</p>
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">Price</p>
+            <p className="font-bold text-[14px]">{priceBand(ipo)}</p>
           </div>
-          <div className="min-w-0">
-            <p className="text-[12px] text-ink-3">GMP</p>
-            <p className={`font-semibold text-[14px] tabular-nums truncate ${e ? (e.gmp > 0 ? "text-gain" : e.gmp < 0 ? "text-loss" : "") : ""}`}>{e ? `${e.gmp >= 0 ? "+" : ""}₹${num(e.gmp)} (${e.pct.toFixed(1)}%)` : "—"}</p>
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">GMP</p>
+            <p className="font-bold text-[14px]">{e ? `${e.gmp >= 0 ? "+" : ""}₹${num(e.gmp)} (${e.pct.toFixed(1)}%)` : "—"}</p>
           </div>
-          <div className="min-w-0">
-            <p className="text-[12px] text-ink-3">Subscribed</p>
-            <p className="font-semibold text-[14px] tabular-nums truncate">{ipo.subscription?.total ? `${Number(ipo.subscription.total).toFixed(2)}x` : "—"}</p>
+          <div className="rounded-2xl bg-surface/85 px-3 py-2.5">
+            <p className="text-[10.5px] uppercase tracking-wide text-ink-3 font-semibold">Subscribed</p>
+            <p className="font-bold text-[14px]">{ipo.subscription?.total ? `${Number(ipo.subscription.total).toFixed(2)}x` : "—"}</p>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <span className="text-[13px] font-semibold text-ink-2">
-            {countdown(ipo) || (ipo.listingDate ? `Listed ${date(ipo.listingDate, true)}` : "")}
+          <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-2">
+            <Icon name="clock" className="size-4" />{countdown(ipo) || (ipo.listingDate ? `Listed ${date(ipo.listingDate, true)}` : "")}
           </span>
           <div className="ml-auto flex gap-2">
-            <button onClick={() => toggleWatch(ipo.name)} aria-pressed={watched} className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-line text-[13px] font-semibold hover:bg-raised ${watched ? "text-[#f59e0b]" : "text-ink-2"}`}>
+            <button onClick={() => toggleWatch(ipo.name)} aria-pressed={watched} className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold ${watched ? "bg-brand text-on-brand" : "bg-surface/85 hover:bg-surface"}`}>
               <Icon name="star" filled={watched} className="size-4" />{watched ? "Watching" : "Watch"}
             </button>
-            <button onClick={share} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-line text-[13px] font-semibold text-ink-2 hover:bg-raised">
+            <button onClick={share} className="h-9 px-3 inline-flex items-center gap-1.5 rounded-xl text-[13px] font-bold bg-surface/85 hover:bg-surface">
               <Icon name="share" className="size-4" />Share
             </button>
           </div>
@@ -418,9 +424,10 @@ export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
         {tab === "docs" && <DocsTab ipo={ipo} detail={detail} />}
 
         {(ipo.status === "open" || ipo.status === "upcoming") && (
-          <a href={`#/planner/${encodeURIComponent(ipoId(ipo))}`} className="mt-5 card px-4 py-3.5 flex items-center gap-3 hover:border-ink-3/40">
+          <a href={`#/planner/${encodeURIComponent(ipoId(ipo))}`} className="mt-5 card p-4 flex items-center gap-3 active:bg-raised">
+            <span className="size-11 shrink-0 grid place-items-center rounded-2xl bg-brand text-on-brand"><Icon name="calendar" className="size-5" /></span>
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-[15px]">Should you apply? See its score</span>
+              <span className="block font-bold text-[15px]">Should you apply? See its priority score</span>
               <span className="block text-[13px] text-ink-3">Compare with overlapping IPOs and plan your budget</span>
             </span>
             <Icon name="chevronRight" className="size-5 text-ink-3 shrink-0" />
@@ -428,7 +435,7 @@ export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
         )}
         {(ipo.status === "open" || ipo.status === "upcoming") && (
           <div className="mt-3 card p-5">
-            <p className="font-semibold text-[15px]">Apply through your broker</p>
+            <p className="font-bold text-[15px]">Apply through your broker</p>
             <p className="text-[13px] text-ink-3 mt-0.5">UPI mandate via ASBA · bids close {ipo.closeDate ? date(ipo.closeDate, true) : "soon"}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {BROKERS.map(([name, url]) => <LinkButton key={name} href={url}>{name} <Icon name="arrowUpRight" className="size-3.5" /></LinkButton>)}
@@ -436,8 +443,8 @@ export function IpoDetail({ ipo: base, onCheckAllotment, onBack }) {
           </div>
         )}
         {!allotment && ipo.status !== "upcoming" && ipo.status !== "open" && (
-          <Button variant="outline" className="mt-4 w-full" onClick={() => onCheckAllotment(null)}>
-            Go to allotment checker
+          <Button variant="soft" className="mt-4 w-full" onClick={() => onCheckAllotment(null)}>
+            <Icon name="check" className="size-4.5" />Go to allotment checker
           </Button>
         )}
       </div>

@@ -2,45 +2,45 @@
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource/ibm-plex-mono/500.css";
 
-/* Palette: calm neutrals with one red accent for actions; stage and gain/loss colours are used small
-   (text, dots, quiet tints), never as big blocks. Dark is the default; light is chosen with the theme switch. */
+/* Palette: flat colours only - red accent on near-black (dark, the default) / on white (light), one hue per IPO stage.
+   Dark is the "Market Pulse" look; light is the same design on white, chosen with the theme switch. */
 :root {
-  --canvas: #09090b;
-  --surface: #111113;
-  --raised: #1a1a1d;
-  --line: #232327;
-  --ink: #f4f4f5;
-  --ink-2: #a1a1aa;
-  --ink-3: #82828c;
+  --canvas: #000000;
+  --surface: #0a0a0a;
+  --raised: #171717;
+  --line: #262626;
+  --ink: #ffffff;
+  --ink-2: #a3a3a3;
+  --ink-3: #737373;
 
-  --brand: #ef4444;
+  --brand: #ef4444; /* Red accent for urgency/ticker */
   --brand-2: #f43f5e;
-  --brand-soft: #2a1314;
+  --brand-soft: #450a0a;
   --on-brand: #ffffff;
 
-  --open: #22c55e;      --open-soft: #10231a;
-  --upcoming: #60a5fa;  --upcoming-soft: #131d2e;
-  --closed: #a1a1aa;    --closed-soft: #1d1d21;
-  --listed: #22d3ee;    --listed-soft: #0e2026;
-  --sme: #c084fc;       --sme-soft: #20152d;
+  --open: #22c55e;      --open-soft: #052e16;
+  --upcoming: #3b82f6;  --upcoming-soft: #1e3a8a;
+  --closed: #737373;    --closed-soft: #262626;
+  --listed: #06b6d4;    --listed-soft: #083344;
+  --sme: #a855f7;       --sme-soft: #4c1d95;
 
-  --gain: #22c55e;      --gain-soft: #10231a;
-  --loss: #f87171;      --loss-soft: #2a1314;
+  --gain: #22c55e;      --gain-soft: #052e16;
+  --loss: #ef4444;      --loss-soft: #450a0a;
 
-  --hero: #111113;
-  --shadow: none;
-  --shadow-lg: 0 16px 40px -12px rgb(0 0 0 / .7);
+  --hero: #171717;
+  --shadow: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.7);
   color-scheme: dark;
 }
 
 :root[data-theme="light"] {
-  --canvas: #f6f6f7;
+  --canvas: #f5f5f5;
   --surface: #ffffff;
-  --raised: #f1f1f3;
-  --line: #e7e7ea;
-  --ink: #0b0b0c;
-  --ink-2: #45454d;
-  --ink-3: #6b6b74;
+  --raised: #f0f0f0;
+  --line: #e5e5e5;
+  --ink: #0a0a0a;
+  --ink-2: #404040;
+  --ink-3: #6b6b6b;
 
   --brand: #dc2626;
   --brand-2: #e11d48;
@@ -49,7 +49,7 @@
 
   --open: #16a34a;      --open-soft: #dcfce7;
   --upcoming: #2563eb;  --upcoming-soft: #dbeafe;
-  --closed: #64748b;    --closed-soft: #f1f1f3;
+  --closed: #64748b;    --closed-soft: #f1f5f9;
   --listed: #0891b2;    --listed-soft: #cffafe;
   --sme: #9333ea;       --sme-soft: #f3e8ff;
 
@@ -57,7 +57,7 @@
   --loss: #dc2626;      --loss-soft: #fee2e2;
 
   --hero: #ffffff;
-  --shadow: 0 1px 2px rgb(0 0 0 / .04);
+  --shadow: 0 1px 2px rgb(0 0 0 / .05), 0 6px 20px -8px rgb(0 0 0 / .12);
   --shadow-lg: 0 20px 50px -12px rgb(0 0 0 / .22);
   color-scheme: light;
 }
@@ -107,8 +107,6 @@
     font-feature-settings: "tnum" 1, "cv11" 1;
   }
   ::selection { background: var(--brand); color: var(--on-brand); }
-  ::placeholder { color: var(--ink-3); }
-  * { scrollbar-color: var(--line) transparent; }
   :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
   input::-webkit-search-cancel-button { display: none; }
   button { cursor: pointer; }
@@ -118,7 +116,7 @@
 @utility card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 20px;
   box-shadow: var(--shadow);
 }
 

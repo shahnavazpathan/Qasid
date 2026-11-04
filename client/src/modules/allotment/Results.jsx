@@ -30,8 +30,8 @@ const statusText = r => ({
 
 function Tile({ value, label, tone }) {
   return (
-    <div className={`rounded-xl px-3 py-3 text-center ${tone}`}>
-      <p className="text-[24px] font-bold leading-none">{value}</p>
+    <div className={`rounded-2xl px-3 py-3 text-center ${tone}`}>
+      <p className="text-[24px] font-extrabold leading-none">{value}</p>
       <p className="mt-1 text-[11.5px] font-semibold opacity-80">{label}</p>
     </div>
   );
@@ -69,7 +69,7 @@ export function Results({ ipo, results, summary, compact = false }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[13px] font-semibold text-ink-3">{displayName(ipo.name)}</p>
-            <p className="text-[22px] font-bold leading-tight">
+            <p className="text-[22px] font-extrabold leading-tight">
               {summary.allotted ? <>🎉 {summary.allotted} of {summary.total} allotted</> : summary.applied ? "No allotment this time" : results.every(r => r.retired) ? "No saved results" : "No applications found"}
             </p>
           </div>

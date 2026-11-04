@@ -1,4 +1,4 @@
-import { Button, Icon, PageHeader } from "../../shared/ui/index.js";
+import { Button, Icon } from "../../shared/ui/index.js";
 import { usePans } from "../pans/pans.controller.jsx";
 import { useAuth } from "../../shared/auth/auth.jsx";
 import { PanList } from "../pans/PanList.jsx";
@@ -6,12 +6,15 @@ import { MAX_PANS, useAllotment, useAllotmentRunner } from "./allotment.controll
 import { IpoPicker } from "./IpoPicker.jsx";
 import { Results } from "./Results.jsx";
 
-function Step({ title, hint, children }) {
+function Step({ n, title, hint, children }) {
   return (
-    <section className="card p-4 sm:p-5">
-      <div className="mb-3">
-        <h2 className="font-semibold text-[15px] leading-tight">{title}</h2>
-        {hint && <p className="mt-0.5 text-[12.5px] text-ink-3">{hint}</p>}
+    <section className="card p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="size-8 grid place-items-center rounded-xl brand-gradient text-white font-bold text-[14px]">{n}</span>
+        <div>
+          <h2 className="font-bold text-[16px] leading-tight">{title}</h2>
+          {hint && <p className="text-[12.5px] text-ink-3">{hint}</p>}
+        </div>
       </div>
       {children}
     </section>
@@ -32,7 +35,7 @@ function Sidebar() {
   return (
     <aside className="space-y-4">
       <section className="card p-5">
-        <h3 className="font-semibold text-[15px] mb-3">Recent checks</h3>
+        <h3 className="font-bold text-[15px] mb-3 flex items-center gap-2"><Icon name="clock" className="size-4.5 text-brand" />Recent checks</h3>
         {recent.length === 0 ? (
           <p className="text-[13.5px] text-ink-3">Your checks will show up here.</p>
         ) : (
@@ -44,7 +47,7 @@ function Sidebar() {
                   <button
                     onClick={() => ipo && select(ipo)}
                     disabled={!ipo}
-                    className="w-full flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-raised text-left disabled:opacity-60"
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 bg-raised/60 hover:bg-raised text-left disabled:opacity-60"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-[13.5px] truncate">{r.name}</span>
@@ -62,11 +65,10 @@ function Sidebar() {
       </section>
 
       <section className="card p-5">
-        <h3 className="font-semibold text-[15px] mb-1">Registrars</h3>
-        <p className="flex items-center gap-1.5 text-[13px] text-ink-2"><span className={`size-1.5 rounded-full ${up === registrars.length ? "bg-open" : "bg-closed"}`} />{up} of {registrars.length || "…"} online</p>
-        {/* Only the ones that are down are worth naming */}
-        <ul className="mt-2 flex flex-wrap gap-1.5 empty:hidden">
-          {registrars.filter(r => !r.status?.ok).map(r => (
+        <h3 className="font-bold text-[15px] mb-1 flex items-center gap-2"><Icon name="shield" className="size-4.5 text-brand" />Registrars</h3>
+        <p className="text-[12.5px] text-ink-3 mb-3">{up} of {registrars.length || "…"} online · checked live</p>
+        <ul className="flex flex-wrap gap-1.5">
+          {registrars.map(r => (
             <li key={r.id} title={r.status?.error || ""} className={`h-7 px-2.5 inline-flex items-center gap-1.5 rounded-full text-[12px] font-semibold ${r.status?.ok ? "bg-open-soft text-open" : "bg-loss-soft text-loss"}`}>
               <i className="size-1.5 rounded-full bg-current" />
               {r.label}
@@ -91,14 +93,21 @@ export function AllotmentView() {
 
   return (
     <div>
-      <PageHeader title="Allotment" description="Check every PAN in one go, across 10 registrars." />
+      <div className="mb-6 border-b border-line pb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="size-2 rounded-full bg-open animate-live" />
+          <span className="text-[12px] font-mono uppercase tracking-widest text-ink-3">Live Result Aggregator</span>
+        </div>
+        <h1 className="text-[28px] sm:text-[36px] font-extrabold tracking-tight uppercase">ALLOTMENT CHECKER</h1>
+        <p className="text-ink-2 mt-1 max-w-xl text-[14px]">One click for every PAN, across 10 registrars. Published results are ingested instantly.</p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
         <div className="space-y-4 min-w-0">
-          <Step title="IPO" hint="IPOs whose allotment is out">
+          <Step n="1" title="Choose the IPO" hint="Only IPOs whose allotment is published appear here">
             <IpoPicker />
           </Step>
-          <Step title="PANs" hint={synced ? "Saved to your account" : "Saved in this browser. Sign in to keep them on every device."}>
+          <Step n="2" title="Pick PANs" hint={synced ?"Saved to your account, on every device" : "Saved in this browser · sign in to keep them on every device"}>
             <PanList />
           </Step>
 

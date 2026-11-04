@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { Empty, Icon, PageHeader, SearchField, SkeletonCards, SkeletonRows, Tabs } from "../../shared/ui/index.js";
+import { Empty, Icon, SearchField, SkeletonCards, SkeletonRows, Tabs } from "../../shared/ui/index.js";
 import { useHotkey } from "../../shared/hooks/useHotkey.js";
 import { clock } from "../../shared/lib/format.js";
 import { useAllotment } from "../allotment/allotment.controller.jsx";
@@ -17,9 +17,9 @@ export function LiveBadge() {
   const m = useMarket();
   if (!m.board) return null;
   return (
-    <button onClick={m.refresh} disabled={m.refreshing} title="Refresh now" className="inline-flex items-center gap-1.5 h-8 px-2 rounded-lg text-ink-3 hover:text-ink text-[12.5px] font-medium">
-      <span className="size-1.5 rounded-full bg-open" />
-      {m.refreshing ? "Updating…" : `Updated ${clock(m.board.updatedAt)}`}
+    <button onClick={m.refresh} disabled={m.refreshing} title="Refresh now" className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-open-soft text-open text-[12.5px] font-bold">
+      <span className={`size-2 rounded-full bg-open ${m.refreshing ? "" : "animate-live"}`} />
+      {m.refreshing ? "Updating…" : `Live · ${clock(m.board.updatedAt)}`}
     </button>
   );
 }
@@ -46,9 +46,13 @@ export function MarketView({ onOpenIpo, onCheckAllotment }) {
 
   return (
     <div>
-      <PageHeader title="IPOs" description="Price band, GMP, subscription and allotment.">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+        <div>
+          <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-tight">IPOs</h1>
+          <p className="text-ink-3 mt-1">Price band, GMP, live subscription and allotment — all in one place.</p>
+        </div>
         <LiveBadge />
-      </PageHeader>
+      </div>
 
       <Tabs label="Status" items={statusTabs} value={m.status} onChange={m.setStatus} />
 
@@ -61,7 +65,7 @@ export function MarketView({ onOpenIpo, onCheckAllotment }) {
               <select
                 value={m.sort}
                 onChange={e => m.setSort(e.target.value)}
-                className="appearance-none h-10 pl-3.5 pr-9 rounded-lg bg-surface border border-line text-[13.5px] font-semibold outline-none focus:ring-2 focus:ring-brand"
+                className="appearance-none h-11 pl-4 pr-9 rounded-2xl bg-surface ring-1 ring-line text-[13.5px] font-semibold outline-none focus:ring-2 focus:ring-brand"
               >
                 {SORT_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
