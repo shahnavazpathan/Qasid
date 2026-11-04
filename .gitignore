@@ -26,3 +26,6 @@ Thumbs.db
 .idea/
 # Runtime data (GMP/subscription history)
 data/
+
+# Dependencies (installed by npm install on the server)
+node_modules/

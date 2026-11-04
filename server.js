@@ -68,9 +68,8 @@ app.post("/api/auth/google", async (req, res) => {
     const ticket = await googleClient.verifyIdToken({ idToken, audience: CLIENT_ID });
     const payload = ticket.getPayload();
     const userId = `g:${payload.sub}`;
-    // Upsert the user and remember their profile so it survives page refreshes and deploys
-    db.run("INSERT INTO users (user_id, created_at) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET created_at=excluded.created_at", [userId, Date.now()]);
-    db.run("INSERT OR REPLACE INTO user_profiles (user_id, email, name, picture) VALUES (?, ?, ?, ?)", [userId, payload.email || null, payload.name || null, payload.picture || null]);
+    // Remember the profile in the persistent store (MongoDB in production) so it survives refreshes and deploys
+    await store().saveProfile(userId, { email: payload.email || null, name: payload.name || null, picture: payload.picture || null });
     auth.issueUserSession(req, res, userId);
     res.json({ success: true, userId, email: payload.email, name: payload.name, picture: payload.picture });
   } catch (err) {
@@ -90,33 +89,40 @@ function currentUserId(req) {
   return req.sessionUserId || null;
 }
 
-// Saved PANs, stored in the database keyed by the signed-in user's id (not localStorage).
+// Saved PANs, kept in the persistent store keyed by the signed-in user's id.
 // The session cookie carries the user_id; unauthenticated requests get an empty list.
-app.get("/api/user/pans", (req, res) => {
+const MAX_SAVED_PANS = 50;
+const PAN_FORMAT = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+
+app.get("/api/user/pans", async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.json({ success: true, guest: true, pans: [] });
-  db.all("SELECT pan, nickname FROM user_pans WHERE user_id = ?", [userId], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
-    db.get("SELECT email, name, picture FROM user_profiles WHERE user_id = ?", [userId], (perr, profile) => {
-      res.json({ success: true, user: profile || null, pans: rows || [] });
-    });
-  });
+  try {
+    const user = await store().getUser(userId);
+    const profile = user ? { email: user.email || null, name: user.name || null, picture: user.picture || null } : null;
+    res.json({ success: true, user: profile, pans: user?.pans || [] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post("/api/user/pans", (req, res) => {
+app.post("/api/user/pans", async (req, res) => {
   const userId = currentUserId(req);
   if (!userId) return res.status(401).json({ success: false, error: "Sign in to save PANs." });
   const pans = Array.isArray(req.body?.pans) ? req.body.pans : [];
-  if (pans.length > 50) return res.status(400).json({ success: false, error: "Maximum 50 PANs." });
-  db.serialize(() => {
-    db.run("DELETE FROM user_pans WHERE user_id = ?", [userId]);
-    const stmt = db.prepare("INSERT INTO user_pans (user_id, pan, nickname) VALUES (?, ?, ?)");
-    for (const p of pans) {
-      if (p && p.pan) stmt.run(userId, String(p.pan).trim().toUpperCase(), String(p.nickname || "Main"));
-    }
-    stmt.finalize();
-  });
-  res.json({ success: true, count: pans.length });
+  if (pans.length > MAX_SAVED_PANS) return res.status(400).json({ success: false, error: `Maximum ${MAX_SAVED_PANS} PANs.` });
+  const clean = [];
+  for (const p of pans) {
+    const pan = String(p?.pan || "").trim().toUpperCase();
+    if (!PAN_FORMAT.test(pan) || clean.some(c => c.pan === pan)) continue;
+    clean.push({ pan, nickname: String(p.nickname || "Main").slice(0, 40), name: String(p.name || "").slice(0, 120) });
+  }
+  try {
+    await store().savePans(userId, clean);
+    res.json({ success: true, count: clean.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 
@@ -666,6 +672,26 @@ app.get("/health", (req, res) => {
 
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
+// Signed-in users used to live in database.sqlite, which Render wipes on every deploy. Copy any that are
+// still there into the persistent store, once: users the store already knows are left alone.
+async function importSqliteUsers() {
+  const all = (sql, params = []) => new Promise((resolve, reject) => db.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows)));
+  try {
+    const profiles = await all("SELECT user_id, email, name, picture FROM user_profiles");
+    let copied = 0;
+    for (const p of profiles) {
+      if (await store().getUser(p.user_id)) continue;
+      const rows = await all("SELECT pan, nickname FROM user_pans WHERE user_id = ?", [p.user_id]);
+      await store().saveProfile(p.user_id, { email: p.email, name: p.name, picture: p.picture });
+      await store().savePans(p.user_id, rows.map(r => ({ pan: r.pan, nickname: r.nickname || "Main", name: "" })));
+      copied++;
+    }
+    if (copied) console.log(`[STORE] Copied ${copied} signed-in user(s) from database.sqlite`);
+  } catch (err) {
+    console.error("[STORE] Could not copy users from database.sqlite:", err.message);
+  }
+}
+
 // Load the persistent store + session secret BEFORE the server accepts any request, so session
 // cookies are signed (and later verified) with the same key from the very first request. Without
 // this the auth module falls back to a random per-boot key, and a signed-in user's cookie can't be
@@ -681,6 +707,7 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
     console.log("[AUTH] Generated new session secret (stored). Set SESSION_SECRET to pin it.");
   }
   auth.setSecret(sessionSecret);
+  await importSqliteUsers();
   app.listen(PORT, async () => {
     console.log("==================================================");
     console.log("  ALL-IN-ONE IPO CHECKER (KFin/MUFG/Bigshare)");

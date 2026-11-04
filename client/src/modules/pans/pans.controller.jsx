@@ -3,20 +3,28 @@ import { useStoredState } from "../../shared/hooks/useStoredState.js";
 import { PAN_RE, parsePans } from "../../shared/lib/pan.js";
 import { useAuth } from "../../shared/auth/auth.jsx";
 import { api } from "../../shared/api/client.js";
+import { useToast } from "../../shared/ui/Toast.jsx";
 
 // Older builds stored this placeholder in place of a real name
 const LEGACY_PLACEHOLDER = "Check allotment to fetch name";
+// The server keeps at most this many PANs per account
+const MAX_PANS = 50;
+
+const save = list => api.post("/api/user/pans", { pans: list.map(p => ({ pan: p.pan, nickname: p.nickname || "Main", name: p.name || "" })) });
 
 const PansContext = createContext(null);
 export const usePans = () => useContext(PansContext);
 
 export function PansProvider({ children }) {
   const { signedIn } = useAuth();
+  const toast = useToast();
   const [stored, setStored] = useStoredState("savedPans", []);
   const [excluded, setExcluded] = useStoredState("uncheckedPans", []);
+  const [history, setHistory] = useStoredState("panHistory", {});
   const syncing = useRef(false);
+  const wasSignedIn = useRef(false);
 
-  // When signed in, fetch PANs from the server DB and merge with any existing local PANs
+  // When signed in, fetch the account's PANs and add any saved in this browser before signing in
   useEffect(() => {
     if (!signedIn) return;
     let live = true;
@@ -24,42 +32,48 @@ export function PansProvider({ children }) {
       if (!live || !data.success || !Array.isArray(data.pans)) return;
       syncing.current = true;
 
-      const dbPans = data.pans.map(p => ({ pan: p.pan, name: p.name || "", nickname: p.nickname || "Main" }));
-
-      // Merge local PANs that might exist before sign in
-      const localPans = stored || [];
-      const combined = [...dbPans];
+      const combined = data.pans.map(p => ({ pan: p.pan, name: p.name || "", nickname: p.nickname || "Main" }));
       let hasNewLocal = false;
-
-      for (const lp of localPans) {
-        if (!combined.some(p => p.pan === lp.pan)) {
+      let left = 0;
+      for (const lp of stored || []) {
+        const hit = combined.find(p => p.pan === lp.pan);
+        if (hit) {
+          // Keep a name this browser already looked up
+          if (!hit.name && lp.name) { hit.name = lp.name; hasNewLocal = true; }
+        } else if (combined.length < MAX_PANS) {
           combined.push(lp);
           hasNewLocal = true;
+        } else {
+          left++;
         }
       }
 
       setStored(combined);
-
-      // If we had local PANs that weren't on the server, migrate them to the DB
-      if (hasNewLocal) {
-        try {
-          await api.post("/api/user/pans", { pans: combined.map(p => ({ pan: p.pan, nickname: p.nickname || "Main" })) });
-        } catch (e) {
-          console.error("Failed to migrate local PANs to DB:", e);
-        }
-      }
+      if (left) toast(`Your account is full (${MAX_PANS} PANs). ${left} PAN${left > 1 ? "s" : ""} from this device weren't added.`, null, "alert");
+      if (hasNewLocal) await save(combined).catch(() => toast("Couldn't save your PANs to your account. Please try again.", null, "alert"));
 
       setTimeout(() => { syncing.current = false; }, 100);
     }).catch(() => {});
     return () => { live = false; };
   }, [signedIn]);
 
-  // Push PAN changes to server DB when signed in
+  // On sign-out, forget this account's PANs on this device so the next person can't see them
+  // (or copy them into their own account by signing in). They come back on the next sign-in.
+  useEffect(() => {
+    if (wasSignedIn.current && !signedIn) {
+      setStored([]);
+      setExcluded([]);
+      setHistory({});
+    }
+    wasSignedIn.current = signedIn;
+  }, [signedIn, setStored, setExcluded, setHistory]);
+
+  // Push PAN changes to the account when signed in
   const persist = useCallback(nextStored => {
     setStored(nextStored);
     if (!signedIn || syncing.current) return;
-    api.post("/api/user/pans", { pans: nextStored.map(p => ({ pan: p.pan, nickname: p.nickname || "Main" })) }).catch(() => {});
-  }, [signedIn, setStored]);
+    save(nextStored).catch(() => toast("Couldn't save your PANs to your account. Please try again.", null, "alert"));
+  }, [signedIn, setStored, toast]);
 
   const pans = useMemo(
     () => stored.map(p => ({ ...p, name: p.name === LEGACY_PLACEHOLDER ? "" : p.name || "" })),
@@ -71,22 +85,22 @@ export function PansProvider({ children }) {
     const entries = parsePans(text);
     const valid = entries.filter(e => PAN_RE.test(e.pan));
     const invalid = entries.filter(e => !PAN_RE.test(e.pan)).map(e => e.pan);
-    if (valid.length) {
-      let nextStored;
-      setStored(prev => {
-        nextStored = prev.map(p => ({ ...p }));
-        valid.forEach(({ pan, nickname }) => {
-          const hit = nextStored.find(p => p.pan === pan);
-          if (hit) { if (nickname) hit.nickname = nickname; }
-          else nextStored.push({ pan, name: "", nickname });
-        });
-        return nextStored;
-      });
+    const nextStored = stored.map(p => ({ ...p }));
+    const taken = [];
+    let full = 0;
+    valid.forEach(({ pan, nickname }) => {
+      const hit = nextStored.find(p => p.pan === pan);
+      if (hit) { if (nickname) hit.nickname = nickname; taken.push(pan); }
+      else if (nextStored.length < MAX_PANS) { nextStored.push({ pan, name: "", nickname }); taken.push(pan); }
+      else full++;
+    });
+    if (taken.length) {
       persist(nextStored);
-      setExcluded(prev => prev.filter(pan => !valid.some(v => v.pan === pan)));
+      setExcluded(prev => prev.filter(pan => !taken.includes(pan)));
     }
-    return { added: valid.length, invalid };
-  }, [setStored, persist, setExcluded]);
+    if (full) toast(`You can save up to ${MAX_PANS} PANs. ${full} PAN${full > 1 ? "s" : ""} weren't added - remove some first.`, null, "alert");
+    return { added: taken.length, invalid };
+  }, [stored, persist, setExcluded, toast]);
 
   // Returns an undo function
   const remove = useCallback(pan => {
@@ -111,11 +125,20 @@ export function PansProvider({ children }) {
       .filter(r => r.success && r.data?.Name && r.data.Name !== "N/A" && !r.data.Name.includes("Not Provided"))
       .map(r => [r.pan, r.data.Name]));
     if (!found.size) return;
-    setStored(prev => prev.map(p => found.has(p.pan) ? { ...p, name: found.get(p.pan) } : p));
-  }, [setStored]);
+    let nextStored, changed = false;
+    setStored(prev => {
+      nextStored = prev.map(p => {
+        if (!found.has(p.pan) || p.name === found.get(p.pan)) return p;
+        changed = true;
+        return { ...p, name: found.get(p.pan) };
+      });
+      return nextStored;
+    });
+    // Save new names to the account too, so other devices show them
+    if (changed && nextStored) persist(nextStored);
+  }, [setStored, persist]);
 
   // Per-PAN record of past outcomes: { PAN: [{ ipo, status, shares, at }] }
-  const [history, setHistory] = useStoredState("panHistory", {});
   const recordHistory = useCallback((ipoName, results) => {
     setHistory(prev => {
       const next = { ...prev };
