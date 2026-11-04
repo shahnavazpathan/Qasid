@@ -1,13 +1,8 @@
 // Runtime configuration, read once from the environment.
-const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.join(__dirname, "..");
-
-// Serve the React build (client/dist) when present; fall back to the legacy static UI
-const WEB_ROOT = fs.existsSync(path.join(ROOT, "client", "dist", "index.html"))
-  ? path.join(ROOT, "client", "dist")
-  : path.join(ROOT, "public");
+// The built React app (committed, so the server never builds it)
+const WEB_ROOT = path.join(__dirname, "..", "client", "dist");
 
 module.exports = {
   PORT: process.env.PORT || 3000,

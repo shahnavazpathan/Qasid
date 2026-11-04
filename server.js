@@ -682,7 +682,6 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", uptime: process.uptime(), timestamp: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) });
 });
 
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 // Signed-in users used to live in database.sqlite, which Render wipes on every deploy. Copy any that are
 // still there into the persistent store, once: users the store already knows are left alone.

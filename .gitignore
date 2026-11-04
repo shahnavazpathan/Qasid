@@ -29,3 +29,10 @@ data/
 
 # Dependencies (installed by npm install on the server)
 node_modules/
+
+# Local tool files (design notes, Claude preview config), kept on this PC only
+.claude/
+.impeccable/
+payload.json
+brief.md
+PRODUCT.md
