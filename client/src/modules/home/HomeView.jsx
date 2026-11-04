@@ -11,7 +11,7 @@ import { AlertsSetup } from "../alerts/AlertsSetup.jsx";
 
 function StatTile({ label, value, icon, tone, onClick }) {
   return (
-    <button onClick={onClick} className="snap-start shrink-0 w-[118px] sm:w-auto text-left rounded-2xl bg-surface/85 hover:bg-surface ring-1 ring-brand/10 transition-colors p-3 sm:p-3.5">
+    <button onClick={onClick} className="snap-start shrink-0 w-[118px] sm:w-auto text-left rounded-2xl bg-canvas ring-1 ring-line hover:ring-brand/40 transition-shadow p-3 sm:p-3.5">
       <span className={`size-8 grid place-items-center rounded-xl ${tone}`}><Icon name={icon} className="size-4.5" /></span>
       <p className="mt-2.5 text-[26px] font-extrabold leading-none">{value ?? "–"}</p>
       <p className="mt-1 text-[12px] font-semibold text-ink-2">{label}</p>
