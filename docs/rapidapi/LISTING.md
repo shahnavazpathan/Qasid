@@ -20,7 +20,7 @@ server blocked.
 
 1. Create a RapidAPI provider account and choose **Add New API**. Name it **Indian IPO Data**,
    category **Finance**.
-2. Under **Definitions**, import `docs/rapidapi/openapi.yaml`. Base URL:
+2. Under **Definitions**, import `docs/rapidapi/openapi.json`. Base URL:
    `https://qasid.thevellora.co.in/v1`.
 3. Under **Gateway**, copy the **X-RapidAPI-Proxy-Secret**.
 4. In Render, add the environment variable `RAPIDAPI_PROXY_SECRET` with that value and redeploy.

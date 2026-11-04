@@ -81,7 +81,7 @@ function listIpos(req, res) {
 // GET /v1/ipos/:id
 function getIpo(req, res) {
   const id = String(req.params.id || "");
-  if (!/^[A-Za-z0-9&-]{1,80}$/.test(id)) return res.status(400).json({ success: false, error: "Invalid IPO id." });
+  if (!/^[A-Za-z0-9& -]{1,80}$/.test(id)) return res.status(400).json({ success: false, error: "Invalid IPO id." });
   return withBoard(res, board => {
     const ipo = allIpos(board).find(i => i.id === id);
     if (!ipo) return res.status(404).json({ success: false, error: "IPO not found. Use /v1/ipos to get valid ids." });

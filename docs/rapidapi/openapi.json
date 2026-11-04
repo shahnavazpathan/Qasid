@@ -1,0 +1,570 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Indian IPO Data",
+    "version": "1.0.0",
+    "description": "Indian IPO calendar, price band, lot size, live category-wise subscription and listing gains for Mainboard and SME issues, plus DRHP / RHP filings with SEBI. Compiled from public exchange, registrar and SEBI pages and refreshed about every 90 seconds. Provided as is, without warranty; not investment advice."
+  },
+  "servers": [
+    {
+      "url": "https://qasid.thevellora.co.in/v1"
+    }
+  ],
+  "paths": {
+    "/ipos": {
+      "get": {
+        "operationId": "listIpos",
+        "summary": "List IPOs",
+        "description": "Open, upcoming, closed (awaiting listing) and recently listed IPOs (last 45 days).",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "open, upcoming, closed or listed",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "upcoming",
+                "closed",
+                "listed"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "mainboard or sme",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mainboard",
+                "sme"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Part of the company name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "IPOs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "IPO id (NSE symbol, or a normalised name)"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Company name"
+                          },
+                          "symbol": {
+                            "type": "string",
+                            "description": "NSE symbol"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Mainboard or SME"
+                          },
+                          "exchange": {
+                            "type": "string",
+                            "description": "Exchange"
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "open, upcoming, closed or listed"
+                          },
+                          "priceMin": {
+                            "type": "number",
+                            "description": "Price band low (₹)"
+                          },
+                          "priceMax": {
+                            "type": "number",
+                            "description": "Price band high (₹)"
+                          },
+                          "issuePrice": {
+                            "type": "number",
+                            "description": "Final issue price (₹)"
+                          },
+                          "lotSize": {
+                            "type": "integer",
+                            "description": "Shares per lot"
+                          },
+                          "minInvestment": {
+                            "type": "number",
+                            "description": "Minimum application (₹; 2 lots for SME)"
+                          },
+                          "issueSizeCr": {
+                            "type": "number",
+                            "description": "Issue size (₹ crore)"
+                          },
+                          "openDate": {
+                            "type": "string",
+                            "description": "Bidding opens (YYYY-MM-DD)"
+                          },
+                          "closeDate": {
+                            "type": "string",
+                            "description": "Bidding closes (YYYY-MM-DD)"
+                          },
+                          "allotmentDate": {
+                            "type": "string",
+                            "description": "Allotment date (YYYY-MM-DD)"
+                          },
+                          "listingDate": {
+                            "type": "string",
+                            "description": "Listing date (YYYY-MM-DD)"
+                          },
+                          "subscription": {
+                            "type": "object",
+                            "description": "Times subscribed, by category",
+                            "properties": {
+                              "total": {
+                                "type": "number",
+                                "description": "Overall times subscribed"
+                              },
+                              "categories": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "category": {
+                                      "type": "string",
+                                      "description": "QIB, NII, bNII, sNII, Retail..."
+                                    },
+                                    "times": {
+                                      "type": "number",
+                                      "description": "Times subscribed"
+                                    }
+                                  }
+                                }
+                              },
+                              "updatedAt": {
+                                "type": "string",
+                                "description": "As of"
+                              }
+                            }
+                          },
+                          "subscriptionHistory": {
+                            "type": "array",
+                            "description": "Day-wise subscription snapshots",
+                            "items": {
+                              "type": "object"
+                            }
+                          },
+                          "applications": {
+                            "type": "integer",
+                            "description": "Number of applications"
+                          },
+                          "listingPrice": {
+                            "type": "number",
+                            "description": "Listing price (₹)"
+                          },
+                          "listingGainPct": {
+                            "type": "number",
+                            "description": "Listing gain (%)"
+                          },
+                          "rhpUrl": {
+                            "type": "string",
+                            "description": "RHP on SEBI"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "When the data was refreshed"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "disclaimer": {
+                          "type": "string",
+                          "description": "Data disclaimer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ipos/{id}": {
+      "get": {
+        "operationId": "getIpo",
+        "summary": "Get one IPO",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The id from List IPOs",
+            "schema": {
+              "type": "string",
+              "example": "VPFL"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The IPO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "IPO id (NSE symbol, or a normalised name)"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Company name"
+                        },
+                        "symbol": {
+                          "type": "string",
+                          "description": "NSE symbol"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "Mainboard or SME"
+                        },
+                        "exchange": {
+                          "type": "string",
+                          "description": "Exchange"
+                        },
+                        "status": {
+                          "type": "string",
+                          "description": "open, upcoming, closed or listed"
+                        },
+                        "priceMin": {
+                          "type": "number",
+                          "description": "Price band low (₹)"
+                        },
+                        "priceMax": {
+                          "type": "number",
+                          "description": "Price band high (₹)"
+                        },
+                        "issuePrice": {
+                          "type": "number",
+                          "description": "Final issue price (₹)"
+                        },
+                        "lotSize": {
+                          "type": "integer",
+                          "description": "Shares per lot"
+                        },
+                        "minInvestment": {
+                          "type": "number",
+                          "description": "Minimum application (₹; 2 lots for SME)"
+                        },
+                        "issueSizeCr": {
+                          "type": "number",
+                          "description": "Issue size (₹ crore)"
+                        },
+                        "openDate": {
+                          "type": "string",
+                          "description": "Bidding opens (YYYY-MM-DD)"
+                        },
+                        "closeDate": {
+                          "type": "string",
+                          "description": "Bidding closes (YYYY-MM-DD)"
+                        },
+                        "allotmentDate": {
+                          "type": "string",
+                          "description": "Allotment date (YYYY-MM-DD)"
+                        },
+                        "listingDate": {
+                          "type": "string",
+                          "description": "Listing date (YYYY-MM-DD)"
+                        },
+                        "subscription": {
+                          "type": "object",
+                          "description": "Times subscribed, by category",
+                          "properties": {
+                            "total": {
+                              "type": "number",
+                              "description": "Overall times subscribed"
+                            },
+                            "categories": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "category": {
+                                    "type": "string",
+                                    "description": "QIB, NII, bNII, sNII, Retail..."
+                                  },
+                                  "times": {
+                                    "type": "number",
+                                    "description": "Times subscribed"
+                                  }
+                                }
+                              }
+                            },
+                            "updatedAt": {
+                              "type": "string",
+                              "description": "As of"
+                            }
+                          }
+                        },
+                        "subscriptionHistory": {
+                          "type": "array",
+                          "description": "Day-wise subscription snapshots",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "applications": {
+                          "type": "integer",
+                          "description": "Number of applications"
+                        },
+                        "listingPrice": {
+                          "type": "number",
+                          "description": "Listing price (₹)"
+                        },
+                        "listingGainPct": {
+                          "type": "number",
+                          "description": "Listing gain (%)"
+                        },
+                        "rhpUrl": {
+                          "type": "string",
+                          "description": "RHP on SEBI"
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "When the data was refreshed"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "disclaimer": {
+                          "type": "string",
+                          "description": "Data disclaimer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/calendar": {
+      "get": {
+        "operationId": "calendar",
+        "summary": "IPO calendar",
+        "description": "Bidding opens, bidding closes, allotment and listing dates in a date range (default: today + 30 days).",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "description": "Start date, YYYY-MM-DD",
+            "schema": {
+              "type": "string",
+              "example": "2026-11-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "End date, YYYY-MM-DD",
+            "schema": {
+              "type": "string",
+              "example": "2026-11-30"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events by date",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "description": "YYYY-MM-DD"
+                          },
+                          "event": {
+                            "type": "string",
+                            "description": "opens, closes, allotment or listing"
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "IPO id"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Company name"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Mainboard or SME"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "When the data was refreshed"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "disclaimer": {
+                          "type": "string",
+                          "description": "Data disclaimer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/filings": {
+      "get": {
+        "operationId": "filings",
+        "summary": "SEBI filings",
+        "description": "Latest DRHP or RHP offer documents filed with SEBI.",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "drhp or rhp (default drhp)",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "drhp",
+                "rhp"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "1 to 200 (default 50)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filings, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Company"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "description": "DRHP, UDRHP, RHP, Addendum"
+                          },
+                          "filedDate": {
+                            "type": "string",
+                            "description": "YYYY-MM-DD"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Document on SEBI"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "updatedAt": {
+                          "type": "string",
+                          "description": "When the data was refreshed"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "disclaimer": {
+                          "type": "string",
+                          "description": "Data disclaimer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

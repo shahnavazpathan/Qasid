@@ -14,7 +14,7 @@ async function board(req, res) {
 // :id is the board's IPO id (NSE symbol, or a normalised name when NSE has no symbol for it)
 async function ipoDetail(req, res) {
   const id = String(req.params.id || "");
-  if (!/^[A-Za-z0-9&-]{1,80}$/.test(id)) return res.status(400).json({ success: false, error: "Invalid IPO id." });
+  if (!/^[A-Za-z0-9& -]{1,80}$/.test(id)) return res.status(400).json({ success: false, error: "Invalid IPO id." });
   try {
     const detail = await market.getIpoDetail(id);
     res.json({ success: true, detail });
