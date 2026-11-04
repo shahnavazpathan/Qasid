@@ -7,6 +7,10 @@ import { allotmentService } from "./allotment.service.js";
 export const NOT_APPLIED = "You have not applied for this IPO.";
 export const MAX_PANS = 50;
 const POLL_MS = 2 * 60 * 1000;
+// PANs per request: results show up batch by batch, and when an allotment comes out one person's 50 PANs
+// don't sit in front of everyone else's in the registrar queue
+const BATCH = 5;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 export const ipoKey = ipo => `${ipo.source}:${ipo.clientId}`;
 
@@ -73,9 +77,37 @@ export function AllotmentProvider({ children }) {
       || null;
   }, [ipos]);
 
-  // Shared by the Allotment page, the IPO sheet and Home quick-check
-  const check = useCallback(async (ipo, pans) => {
-    const raw = await allotmentService.check(ipo, pans.slice(0, MAX_PANS));
+  // Shared by the Allotment page, the IPO sheet and Home quick-check.
+  // onProgress(results so far, total) is called after each batch.
+  const check = useCallback(async (ipo, pans, onProgress) => {
+    const list = pans.slice(0, MAX_PANS);
+    const runBatches = async (targets, report) => {
+      const out = [];
+      let failures = 0, lastError = null;
+      for (let i = 0; i < targets.length; i += BATCH) {
+        const batch = targets.slice(i, i + BATCH);
+        try {
+          out.push(...await allotmentService.check(ipo, batch));
+        } catch (err) {
+          failures++;
+          lastError = err;
+          out.push(...batch.map(pan => ({ pan, success: false, error: err.message })));
+        }
+        report(out);
+      }
+      // Every batch failed (offline, rate limited...): one clear error instead of the same one per PAN
+      if (failures && failures === Math.ceil(targets.length / BATCH)) throw lastError;
+      return out;
+    };
+
+    let raw = await runBatches(list, out => onProgress?.(out, list.length));
+    // The registrar was too busy for some PANs: one more try after a short pause
+    const busy = raw.filter(r => r.busy).map(r => r.pan);
+    if (busy.length) {
+      await sleep(4000);
+      const merge = out => { const byPan = new Map(out.map(r => [r.pan, r])); return raw.map(r => byPan.get(r.pan) || r); };
+      raw = merge(await runBatches(busy, out => onProgress?.(merge(out), list.length)).catch(() => []));
+    }
     const results = [...raw].sort((a, b) => rank(a) - rank(b));
     learnNames(results);
     recordHistory(displayName(ipo.name), results);
@@ -105,13 +137,19 @@ export function useAllotmentRunner(ipo) {
 
   const run = useCallback(async pans => {
     if (!ipo || !pans.length) return null;
-    setState({ ...IDLE, status: "loading", ipo });
+    const total = Math.min(pans.length, MAX_PANS);
+    setState({ ...IDLE, status: "loading", ipo, progress: { done: 0, total } });
+    // Updates only apply while this run is still the one on screen (the user may have picked another IPO)
+    const mine = s => s.ipo === ipo;
+    const showPartial = partial => setState(s => (mine(s) && s.status === "loading"
+      ? { ...s, results: [...partial].sort((a, b) => rank(a) - rank(b)), summary: summarise(partial), progress: { done: partial.length, total } }
+      : s));
     try {
-      const { results, summary } = await check(ipo, pans);
-      setState({ status: "done", results, summary, error: "", ipo });
+      const { results, summary } = await check(ipo, pans, showPartial);
+      setState(s => (mine(s) ? { status: "done", results, summary, error: "", ipo } : s));
       return summary;
     } catch (err) {
-      setState({ ...IDLE, status: "error", error: err.message, ipo });
+      setState(s => (mine(s) ? { ...IDLE, status: "error", error: err.message, ipo } : s));
       return null;
     }
   }, [ipo, check]);

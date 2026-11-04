@@ -5,6 +5,7 @@ const { ipoIdentity } = require("./ipoList.service");
 
 const NOT_APPLIED_MSG = "You have not applied for this IPO.";
 const RETIRED_MSG = "The registrar has closed the allotment checker for this IPO, and Qasid has no saved result for this PAN.";
+const BUSY_MSG = "The registrar is very busy right now. Please try again in a minute.";
 
 // Result cache: allotment outcomes are final once published, "not applied" can still change briefly
 // (registrars sometimes upload in batches), errors are never cached.
@@ -28,21 +29,62 @@ function cacheSet(key, value, ttl) {
 
 // At most N live lookups per registrar across ALL requests: when an allotment comes out and many phones
 // check at once, requests queue here instead of getting Qasid rate-limited or blocked by the registrar.
+// - People checking in the app go first; background checks (a phone checking its saved PANs when the
+//   allotment alert arrives) only run when nobody is waiting.
+// - A lookup nobody is waiting for any more (the phone gave up) is dropped instead of sent.
+// - Nothing waits forever: after QUEUE_WAIT_MS the lookup gives up as "busy".
+const QUEUE_WAIT_MS = { interactive: 45 * 1000, background: 20 * 1000 };
+class Busy extends Error {}
+class Abandoned extends Error {}
 const registrarSlots = new Map();
-function withRegistrarSlot(registrar, fn) {
-  const limit = Math.max(4, (registrar.concurrency || 3) * 2);
+
+function pump(slot) {
+  while (slot.active < slot.limit) {
+    const job = slot.interactive.shift() || slot.background.shift();
+    if (!job) return;
+    job.start();
+  }
+}
+
+function withRegistrarSlot(registrar, fn, lookup) {
   let slot = registrarSlots.get(registrar.id);
-  if (!slot) registrarSlots.set(registrar.id, slot = { active: 0, queue: [] });
+  if (!slot) {
+    slot = { active: 0, limit: Math.max(4, (registrar.concurrency || 3) * 2), interactive: [], background: [] };
+    registrarSlots.set(registrar.id, slot);
+  }
   return new Promise((resolve, reject) => {
-    const run = () => {
-      slot.active++;
-      Promise.resolve().then(fn).then(resolve, reject).finally(() => {
-        slot.active--;
-        const next = slot.queue.shift();
-        if (next) next();
-      });
+    const lane = () => (lookup.background ? slot.background : slot.interactive);
+    let timer;
+    const giveUpAfter = ms => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (job.done) return;
+        job.done = true;
+        const q = lane();
+        const i = q.indexOf(job);
+        if (i >= 0) q.splice(i, 1);
+        reject(new Busy());
+      }, ms);
     };
-    if (slot.active < limit) run(); else slot.queue.push(run);
+    const job = {
+      start() {
+        clearTimeout(timer);
+        if (job.done) return;
+        job.done = true;
+        if (!lookup.wanted()) return reject(new Abandoned());
+        slot.active++;
+        Promise.resolve().then(fn).then(resolve, reject).finally(() => { slot.active--; pump(slot); });
+      },
+      // An interactive request joined a queued background lookup: move it to the front lane
+      promote() {
+        const i = slot.background.indexOf(job);
+        if (i >= 0) { slot.background.splice(i, 1); slot.interactive.push(job); giveUpAfter(QUEUE_WAIT_MS.interactive); }
+      }
+    };
+    giveUpAfter(lookup.background ? QUEUE_WAIT_MS.background : QUEUE_WAIT_MS.interactive);
+    lookup.job = job;
+    lane().push(job);
+    pump(slot);
   });
 }
 
@@ -52,7 +94,7 @@ async function archivedResult(ipo, pan) {
   return hit && { ...hit.value, archived: true, savedAt: hit.savedAt };
 }
 
-async function lookupPan(ipo, registrar, pan) {
+async function lookupPan(ipo, registrar, pan, lookup) {
   // Retired IPO: the registrar no longer has the data, so a saved result is the answer
   if (ipo.retired) {
     const saved = await archivedResult(ipo, pan);
@@ -61,10 +103,14 @@ async function lookupPan(ipo, registrar, pan) {
 
   let outcome;
   try {
-    outcome = await withRegistrarSlot(registrar, () => registrar.checkPan(ipo, pan));
+    outcome = await withRegistrarSlot(registrar, () => registrar.checkPan(ipo, pan), lookup);
   } catch (err) {
-    console.error(`[${registrar.tag}] check failed for ${ipo.clientId}:`, err.message);
-    outcome = { status: "error" };
+    if (err instanceof Abandoned) return { value: { pan, success: false, error: BUSY_MSG, busy: true, source: registrar.id }, ttl: 0 };
+    if (err instanceof Busy) outcome = { status: "error", error: BUSY_MSG, busy: true };
+    else {
+      console.error(`[${registrar.tag}] check failed for ${ipo.clientId}:`, err.message);
+      outcome = { status: "error" };
+    }
   }
 
   if (outcome.status === "found") {
@@ -85,7 +131,7 @@ async function lookupPan(ipo, registrar, pan) {
   // Registrar down or erroring: a saved result beats an error
   const saved = await archivedResult(ipo, pan);
   if (saved) return { value: saved, ttl: 0 };
-  return { value: { pan, success: false, error: outcome.error || "Unable to contact allotment service.", source: registrar.id }, ttl: 0 };
+  return { value: { pan, success: false, error: outcome.error || "Unable to contact allotment service.", ...(outcome.busy ? { busy: true } : {}), source: registrar.id }, ttl: 0 };
 }
 
 function foundValue(registrar, pan, outcome) {
@@ -104,20 +150,36 @@ function foundValue(registrar, pan, outcome) {
   return value;
 }
 
-async function checkOnePan(ipo, registrar, rawPan) {
+// opts.background: lower priority (see withRegistrarSlot). opts.alive(): false once the caller hung up.
+async function checkOnePan(ipo, registrar, rawPan, { background = false, alive = () => true } = {}) {
   const pan = String(rawPan).trim().toUpperCase();
   if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) return { pan, success: false, error: "Invalid PAN" };
 
   const key = `${ipoIdentity(ipo)}:${pan}`;
   const cached = cacheGet(key);
   if (cached) return { ...cached, cached: true };
+  if (!alive()) return { pan, success: false, error: BUSY_MSG, busy: true, source: registrar.id };
 
-  if (!inFlight.has(key)) {
-    inFlight.set(key, lookupPan(ipo, registrar, pan)
-      .then(({ value, ttl }) => { if (ttl) cacheSet(key, value, ttl); return value; })
-      .finally(() => inFlight.delete(key)));
+  // Identical lookups share one request; it is wanted while any of its callers still is, and runs at
+  // the highest priority among them
+  let lookup = inFlight.get(key);
+  if (lookup) {
+    lookup.waiters.push(alive);
+    if (!background && lookup.background) {
+      lookup.background = false;
+      lookup.job?.promote();
+    }
+    return lookup.promise;
   }
-  return inFlight.get(key);
+  // The caller is registered before the lookup starts: with a free slot it starts right away and checks
+  // that someone still wants it
+  lookup = { waiters: [alive], background, job: null };
+  lookup.wanted = () => lookup.waiters.some(w => w());
+  inFlight.set(key, lookup);
+  lookup.promise = lookupPan(ipo, registrar, pan, lookup)
+    .then(({ value, ttl }) => { if (ttl) cacheSet(key, value, ttl); return value; })
+    .finally(() => inFlight.delete(key));
+  return lookup.promise;
 }
 
 module.exports = { checkOnePan };

@@ -56,17 +56,20 @@ function idb(mode, fn) {
 const idbGet = key => idb("readonly", s => s.get(key)).catch(() => null);
 const idbSet = (key, value) => idb("readwrite", s => s.put(value, key)).catch(() => {});
 
-function withTimeout(promise, ms) {
-  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))]);
-}
-
-// Check the user's saved PANs for a freshly published allotment, right on the device
+// Check the user's saved PANs for a freshly published allotment, right on the device.
+// Every subscribed phone gets the alert at the same moment, so this is sent as background work (people
+// checking in the app go first), after a random pause of up to 8s so phones don't all arrive at once,
+// and it is really cancelled on timeout so the server stops working on it.
 async function checkPans(ipo, pans) {
-  const res = await withTimeout(fetch("/api/check", {
+  await new Promise(r => setTimeout(r, Math.random() * 8000));
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 20000);
+  const res = await fetch("/api/check", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clientId: ipo.clientId, source: ipo.source, pans: pans.slice(0, 50) })
-  }), 25000);
+    body: JSON.stringify({ clientId: ipo.clientId, source: ipo.source, pans: pans.slice(0, 50), background: true }),
+    signal: abort.signal
+  }).finally(() => clearTimeout(timer));
   const data = await res.json();
   if (!data.success) throw new Error(data.error || "check failed");
   const allotted = data.results.filter(r => r.success && Number(r.data.Allotted) > 0);

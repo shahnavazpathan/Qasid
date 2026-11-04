@@ -89,6 +89,7 @@ export function AllotmentView() {
   const runner = useAllotmentRunner(selected);
   const loading = runner.status === "loading";
   const count = Math.min(pans.length, MAX_PANS);
+  const progress = runner.progress;
 
   return (
     <div>
@@ -118,12 +119,15 @@ export function AllotmentView() {
             className="w-full"
           >
             <Icon name={loading ? "refresh" : "check"} className={`size-5 ${loading ? "animate-spin" : ""}`} />
-            {loading ? `Checking ${count} PAN${count === 1 ? "" : "s"}…` : count > 1 ? `Check ${count} PANs` : "Check allotment"}
+            {loading
+              ? progress?.total > 1 ? `Checked ${progress.done} of ${progress.total}…` : "Checking…"
+              : count > 1 ? `Check ${count} PANs` : "Check allotment"}
           </Button>
 
           <div aria-live="polite">
             {runner.status === "error" && <p className="card p-4 text-loss font-semibold">{runner.error}</p>}
-            {runner.status === "done" && <Results ipo={runner.ipo} results={runner.results} summary={runner.summary} />}
+            {/* Shown batch by batch while checking; remounted when done so the celebration sees the final count */}
+            {(runner.status === "done" || (loading && runner.results.length > 0)) && <Results key={runner.status} ipo={runner.ipo} results={runner.results} summary={runner.summary} />}
           </div>
         </div>
         <Sidebar />

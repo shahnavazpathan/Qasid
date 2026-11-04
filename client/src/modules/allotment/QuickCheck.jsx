@@ -37,7 +37,9 @@ export function QuickCheck({ ipo, onOpenFull }) {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <Button variant="primary" size="lg" disabled={loading || !selected.length} onClick={() => runner.run(selected)}>
                 <Icon name={loading ? "refresh" : "check"} className={`size-5 ${loading ? "animate-spin" : ""}`} />
-                {loading ? "Checking…" : `Check ${selected.length} saved PAN${selected.length === 1 ? "" : "s"}`}
+                {loading
+                  ? runner.progress?.total > 1 ? `Checked ${runner.progress.done} of ${runner.progress.total}…` : "Checking…"
+                  : `Check ${selected.length} saved PAN${selected.length === 1 ? "" : "s"}`}
               </Button>
               {onOpenFull && <button onClick={onOpenFull} className="text-[13.5px] font-semibold text-brand hover:underline">Choose PANs →</button>}
             </div>
@@ -62,7 +64,7 @@ export function QuickCheck({ ipo, onOpenFull }) {
       </div>
 
       {runner.status === "error" && <p className="card p-4 text-loss font-semibold">{runner.error}</p>}
-      {runner.status === "done" && <Results ipo={runner.ipo} results={runner.results} summary={runner.summary} compact />}
+      {(runner.status === "done" || (loading && runner.results.length > 0)) && <Results key={runner.status} ipo={runner.ipo} results={runner.results} summary={runner.summary} compact />}
     </div>
   );
 }

@@ -175,4 +175,15 @@ async function fetchLiveIpoList(forceRefresh = false) {
 
 const getRegistrarStatus = id => registrarStatus.get(id) || null;
 
-module.exports = { fetchLiveIpoList, loadSavedLists, getRegistrarStatus, ipoIdentity };
+// The current list straight away, even when it's due a refresh (which then runs in the background). When an
+// allotment comes out, registrar pages are slow, and a check or page load must not wait on all ten of them.
+// Waits only when there is no list yet.
+function currentIpoList() {
+  if (!ipoCache.data) return fetchLiveIpoList(false);
+  if (Date.now() - ipoCache.fetchedAt >= IPO_CACHE_TIME) fetchLiveIpoList(false).catch(() => {});
+  return Promise.resolve(ipoCache.data);
+}
+
+const ipoListAge = () => Date.now() - ipoCache.fetchedAt;
+
+module.exports = { fetchLiveIpoList, currentIpoList, ipoListAge, loadSavedLists, getRegistrarStatus, ipoIdentity };
