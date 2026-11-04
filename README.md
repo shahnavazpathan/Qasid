@@ -130,7 +130,9 @@ The Qasid API serves only the Qasid website and installed app. It isn't open for
 - Browser requests need a signed session cookie that is issued when the site loads, **and** must come from Qasid's own address. A spoofed `Origin` header from a script is rejected.
 - Every endpoint is rate limited per IP and per session. PAN checks have their own tighter budget, because each PAN is a live lookup on a registrar.
 
-> **Want API access** for a project, a bot or research? [Open an issue](https://github.com/shahnavazpathan/Qasid/issues/new?title=API%20access%20request) or reach out to [@shahnavazpathan](https://github.com/shahnavazpathan) and describe what you're building.
+### Public data API
+
+A separate, read-only `/v1` API with IPO calendar, subscription, listing and SEBI filing data is offered through RapidAPI. It never includes PAN or allotment checks or GMP, and it reads only from the website's cache. Setup, plans and terms: [docs/rapidapi/LISTING.md](docs/rapidapi/LISTING.md).
 
 ## Data sources
 
@@ -207,6 +209,7 @@ Qasid runs on Render as a Node web service: build command `npm install`, start c
 | `SESSION_SECRET` | **Recommended.** Signs session cookies; if unset, one is generated once and kept in MongoDB |
 | `GOOGLE_CLIENT_ID` | OAuth client ID that Google sign-in tokens are checked against |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional web push keys; generated once and kept in MongoDB if unset |
+| `RAPIDAPI_PROXY_SECRET` | Turns on the public `/v1` API; the secret from RapidAPI's Gateway settings |
 | `EXTRA_ORIGINS` | More allowed site addresses, separated by commas |
 | `NSE_DISABLED` | Set to `1` to skip NSE, which blocks most cloud servers; details then come from BSE, then Chittorgarh |
 | `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |

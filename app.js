@@ -9,11 +9,11 @@ const app = express();
 app.set("trust proxy", TRUST_PROXY);
 
 // Send visitors on the other addresses (ipo.thevellora.co.in, the onrender.com one) to the main one:
-// Google sign-in only accepts the main address. Page loads only, and never Render's health check.
+// Google sign-in only accepts the main address. Page loads only, never Render's health check or the /v1 data API.
 const otherHosts = new Set(OTHER_HOSTS);
 app.use((req, res, next) => {
   const host = String(req.headers.host || "").toLowerCase().split(":")[0];
-  if (otherHosts.has(host) && (req.method === "GET" || req.method === "HEAD") && req.path !== "/health") {
+  if (otherHosts.has(host) && (req.method === "GET" || req.method === "HEAD") && req.path !== "/health" && !req.path.startsWith("/v1/")) {
     return res.redirect(301, `https://${MAIN_HOST}${req.originalUrl}`);
   }
   next();
