@@ -1,0 +1,27 @@
+# Qasid
+
+> Qasid is a free web app for Indian IPO investors: live IPO GMP (grey market premium), subscription status, an IPO planner, and an allotment checker that checks many PANs at once (for example a whole family's PANs) across every registrar.
+
+Qasid is at https://qasid.thevellora.co.in. It works in any browser and can be installed on a phone. No sign-up is needed; signing in with Google keeps saved PANs on every device.
+
+## What it does
+
+- **Allotment checker for multiple PANs**: pick an IPO whose allotment is out, enter up to 50 PANs, and see the shares allotted for each. Works with all ten Indian IPO registrars: KFintech, Link Intime (MUFG Intime), Bigshare, Skyline, Purva Sharegistry, Maashitla, Integrated Registry, Satellite Corporate, Accurate Securities and MAS Services.
+- **IPO GMP today**: every current Mainboard and SME IPO with its GMP, price band, lot size, subscription and key dates, updated through the day.
+- **IPO planner**: shows overlapping IPOs on a calendar, gives each a priority score, and suggests how many applications to make for a given budget and number of PANs.
+- **Allotment alerts**: a notification the moment an IPO's allotment is published, optionally with results for the user's saved PANs.
+
+## Main pages
+
+- [IPO GMP today](https://qasid.thevellora.co.in/ipo): all current IPOs with GMP and subscription.
+- [Check IPO allotment for multiple PANs](https://qasid.thevellora.co.in/check-allotment-multiple-pan): how to check all family PANs at once.
+- [IPO allotment status by registrar](https://qasid.thevellora.co.in/allotment-status): allotments out now, grouped by registrar.
+- [Allotment checker](https://qasid.thevellora.co.in/#/allotment): the tool itself.
+- [IPO planner](https://qasid.thevellora.co.in/#/planner)
+
+## Notes
+
+- GMP is unofficial grey-market data and only indicative.
+- Qasid is not registered with SEBI and gives no investment advice.
+- PANs are sent only to the IPO's registrar to fetch the result.
+- [Privacy policy](https://qasid.thevellora.co.in/privacy.html) · [Terms](https://qasid.thevellora.co.in/terms.html)
