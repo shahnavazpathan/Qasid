@@ -48,7 +48,7 @@ module.exports = {
   // unit ID, adds two fixed in-content ads per page on top of whatever Auto ads places. The ID is public (it is in
   // every page and ads.txt), so it is the default here; set ADSENSE_CLIENT to an empty value to turn ads off.
   ADSENSE_CLIENT: (m => (m ? `ca-pub-${m[1]}` : null))(String(process.env.ADSENSE_CLIENT ?? "pub-3037012624883817").trim().match(/^(?:ca-)?pub-(\d{10,20})$/)),
-  ADSENSE_SLOT: /^\d{5,20}$/.test(String(process.env.ADSENSE_SLOT || "").trim()) ? String(process.env.ADSENSE_SLOT).trim() : null,
+  ADSENSE_SLOT: (v => (/^\d{5,20}$/.test(v) ? v : null))(String(process.env.ADSENSE_SLOT ?? "3308128452").trim()), // "Qasid in-content" unit; empty turns it off
 
   // ntfy.sh topic for the owner's failure alerts (lib/alerts.js); pick a long random name, it acts as a password
   ALERT_NTFY_TOPIC: process.env.ALERT_NTFY_TOPIC || null,
