@@ -4,6 +4,9 @@ const storeLib = require("../lib/store");
 const pages = require("../lib/ipoPages");
 const { registrars } = require("../lib/registrars");
 const { currentIpoList } = require("../services/ipoList.service");
+const fs = require("fs");
+const path = require("path");
+const { WEB_ROOT, ADSENSE_CLIENT } = require("../config");
 
 const html = (res, status, body, maxAge = 300) =>
   res.status(status).set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": `public, max-age=${maxAge}` }).send(body);
@@ -140,4 +143,24 @@ function robots(req, res) {
   );
 }
 
-module.exports = { ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots };
+// ads.txt: names Google as the only seller of ad space on this site (AdSense checks it)
+function adsTxt(req, res) {
+  if (!ADSENSE_CLIENT) return res.status(404).type("text/plain").send("Not found");
+  res.type("text/plain").set("Cache-Control", "public, max-age=86400")
+    .send(`google.com, ${ADSENSE_CLIENT.replace(/^ca-/, "")}, DIRECT, f08c47fec0942fa0
+`);
+}
+
+// Home page with the AdSense account tag, so Google can verify the site. Only the tag: the app itself shows no ads.
+let homeHtml = null;
+function home(req, res, next) {
+  if (!ADSENSE_CLIENT) return next();
+  try {
+    homeHtml ??= fs.readFileSync(path.join(WEB_ROOT, "index.html"), "utf8")
+      .replace("</head>", `<meta name="google-adsense-account" content="${ADSENSE_CLIENT}">
+</head>`);
+  } catch { return next(); }
+  res.type("html").set("Cache-Control", "no-cache").send(homeHtml);
+}
+
+module.exports = { ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots, adsTxt, home };

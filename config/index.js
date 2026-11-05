@@ -28,7 +28,7 @@ module.exports = {
 
   // Date of the current Terms of Service and Privacy Policy (client/public/terms.html, privacy.html).
   // Change it whenever either page changes in substance: signed-in users are then asked to agree again.
-  LEGAL_VERSION: "2026-11-04",
+  LEGAL_VERSION: "2026-11-05",
 
   // Shared secret RapidAPI sends with every forwarded request (RapidAPI dashboard → your API → Gateway).
   // The public /v1 API stays off until it is set.
@@ -42,6 +42,13 @@ module.exports = {
   // e.g. @qasid_ipo. Off until both are set.
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || null,
   TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || null,
+
+  // Google AdSense publisher ID (ca-pub-1234567890123456; "pub-…" also accepted). Ads appear only on the public
+  // pages (/ipo, /allotment-status), never in the app where PANs are typed. ADSENSE_SLOT, an optional display ad
+  // unit ID, adds two fixed in-content ads per page on top of whatever Auto ads places. The ID is public (it is in
+  // every page and ads.txt), so it is the default here; set ADSENSE_CLIENT to an empty value to turn ads off.
+  ADSENSE_CLIENT: (m => (m ? `ca-pub-${m[1]}` : null))(String(process.env.ADSENSE_CLIENT ?? "pub-3037012624883817").trim().match(/^(?:ca-)?pub-(\d{10,20})$/)),
+  ADSENSE_SLOT: /^\d{5,20}$/.test(String(process.env.ADSENSE_SLOT || "").trim()) ? String(process.env.ADSENSE_SLOT).trim() : null,
 
   // ntfy.sh topic for the owner's failure alerts (lib/alerts.js); pick a long random name, it acts as a password
   ALERT_NTFY_TOPIC: process.env.ALERT_NTFY_TOPIC || null,
