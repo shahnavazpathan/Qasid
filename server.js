@@ -11,6 +11,7 @@ const history = require("./lib/history");
 const resultArchive = require("./lib/resultArchive");
 const { loadSavedLists } = require("./services/ipoList.service");
 const { startIpoMonitor } = require("./services/monitor.service");
+const { startTelegramDigests } = require("./services/telegram.service");
 const alerts = require("./lib/alerts");
 
 // A stray rejected promise is logged, not fatal: one bad registrar response must not stop the monitor.
@@ -46,6 +47,7 @@ async function start() {
     console.log("==================================================");
     console.log(`  Open: http://localhost:${PORT}`);
     startIpoMonitor();
+    startTelegramDigests();
   });
 }
 

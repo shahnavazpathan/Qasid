@@ -5,6 +5,7 @@ const storeLib = require("../lib/store");
 const push = require("../lib/push");
 const allotments = require("../lib/allotments");
 const alerts = require("../lib/alerts");
+const telegram = require("./telegram.service");
 const { ALLOTMENT_ALERTS } = require("../config");
 
 const IPO_CACHE_TIME = 5 * 60 * 1000;
@@ -164,6 +165,7 @@ async function fetchLiveIpoList(forceRefresh = false) {
       for (const ipo of fresh) {
         console.log(`[ALLOTMENTS] New allotment: ${ipo.name}${ALLOTMENT_ALERTS ? "" : " (alerts off on this server)"}`);
         if (ALLOTMENT_ALERTS) push.notifyAllotment(ipo).catch(err => console.error("[PUSH] notify failed:", err.message));
+        telegram.postAllotment(ipo).catch(err => console.error("[TELEGRAM] post failed:", err.message));
       }
       return merged;
     } finally {

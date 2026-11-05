@@ -154,6 +154,7 @@ function Footer() {
       {down.length > 0 && <p className="text-closed">Temporarily unavailable: {down.join(", ")}</p>}
       <p>GMP is unofficial grey-market data and only indicative. Qasid is not registered with SEBI and nothing here is investment advice.</p>
       <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+        <a href="/ipo" className="font-semibold text-ink-2 hover:text-ink">IPO GMP list</a>
         <a href="/terms.html" className="font-semibold text-ink-2 hover:text-ink">Terms of Service</a>
         <a href="/privacy.html" className="font-semibold text-ink-2 hover:text-ink">Privacy Policy</a>
         <a href="mailto:sk7611065@gmail.com" className="font-semibold text-ink-2 hover:text-ink">Grievances: sk7611065@gmail.com</a>

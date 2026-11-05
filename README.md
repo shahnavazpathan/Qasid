@@ -212,6 +212,7 @@ Qasid runs on Render as a Node web service: build command `npm install`, start c
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional web push keys; generated once and kept in MongoDB if unset |
 | `RAPIDAPI_PROXY_SECRET` | Turns on the public `/v1` API; the secret from RapidAPI's Gateway settings |
 | `ALERT_NTFY_TOPIC` | Optional. Sends you a phone alert (ntfy app) when a registrar or data source keeps failing, recovers, or the server crashes. Use a long random name: anyone who knows it can read the alerts |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Optional. Posts to a Telegram channel: every new allotment, a morning IPO digest (9 AM IST) and an evening listing recap (4 PM IST). Token from @BotFather; chat id like `@your_channel`. Preview with `node scripts/test-telegram.js` |
 | `EXTRA_ORIGINS` | More allowed site addresses, separated by commas |
 | `NSE_DISABLED` | Set to `1` to skip NSE, which blocks most cloud servers; details then come from BSE, then Chittorgarh |
 | `TRUST_PROXY` | Proxy hops to trust for client IPs (default `1` for Render; `0` when exposed directly) |

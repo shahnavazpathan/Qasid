@@ -38,6 +38,11 @@ module.exports = {
   // a second server against the same database (e.g. while moving hosts), so subscribers aren't alerted twice.
   ALLOTMENT_ALERTS: process.env.ALLOTMENT_ALERTS !== "off",
 
+  // Telegram channel posts (services/telegram.service.js): bot token from @BotFather, and the channel,
+  // e.g. @qasid_ipo. Off until both are set.
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || null,
+  TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || null,
+
   // ntfy.sh topic for the owner's failure alerts (lib/alerts.js); pick a long random name, it acts as a password
   ALERT_NTFY_TOPIC: process.env.ALERT_NTFY_TOPIC || null,
 
