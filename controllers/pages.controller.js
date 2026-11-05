@@ -136,6 +136,15 @@ async function registrarPage(req, res) {
   }
 }
 
+async function multiPan(req, res) {
+  try {
+    html(res, 200, pages.renderMultiPanPage(await allotmentsByRegistrar(await entries())));
+  } catch (err) {
+    console.error("[PAGES] multi-pan:", err.message);
+    html(res, 503, pages.renderNotFound(), 0);
+  }
+}
+
 async function sitemap(req, res) {
   try {
     res.set({ "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" }).send(pages.renderSitemap(await entries()));
@@ -173,4 +182,4 @@ function home(req, res, next) {
 // IndexNow key file (lib/indexnow.js)
 const indexNowKey = (req, res) => res.type("text/plain").set("Cache-Control", "public, max-age=86400").send(indexnow.KEY);
 
-module.exports = { indexNowKey, ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots, adsTxt, home };
+module.exports = { multiPan, indexNowKey, ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots, adsTxt, home };
