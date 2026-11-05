@@ -1,5 +1,10 @@
 /* Qasid service worker: offline shell, push notifications, on-device allotment check. */
-const CACHE = "qasid-v2";
+// v3: drops the v2 cache, whose saved "/" could hold another page (every navigation used to be saved under "/")
+const CACHE = "qasid-v3";
+// The installed app shows its saved shell instead of a frozen splash screen when the network is this slow
+const NAV_TIMEOUT_MS = 3500;
+// Server-rendered pages (search results land here); everything else at a path is the app itself
+const isServerPage = path => path !== "/" && path !== "/index.html";
 const SHELL = ["/", "/logo.svg", "/favicon.svg", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/badge-96.png"];
 
 self.addEventListener("install", event => {
@@ -20,13 +25,21 @@ self.addEventListener("fetch", event => {
   const url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
 
-  // Pages: network first so updates show immediately, cached shell when offline
+  // Pages: network first so updates show immediately. For the app shell, a slow or missing network falls back
+  // to the saved shell after a few seconds, so the installed app never sits on its splash screen.
+  // Only a good response for "/" itself is saved as the shell.
   if (req.mode === "navigate") {
-    event.respondWith(fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put("/", copy)).catch(() => {});
-      return res;
-    }).catch(() => caches.match("/")));
+    if (isServerPage(url.pathname)) return; // /ipo, /allotment-status, ... : plain browser loading
+    event.respondWith((async () => {
+      const network = fetch(req).then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put("/", copy)).catch(() => {}); }
+        return res;
+      });
+      const saved = await caches.match("/");
+      if (!saved) return network;
+      const slow = new Promise(resolve => setTimeout(() => resolve(saved), NAV_TIMEOUT_MS));
+      return Promise.race([network.catch(() => saved), slow]);
+    })());
     return;
   }
 
