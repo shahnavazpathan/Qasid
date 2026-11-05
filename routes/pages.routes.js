@@ -10,5 +10,6 @@ router.get("/allotment-status/:registrar", pages.registrarPage);
 router.get("/sitemap.xml", pages.sitemap);
 router.get("/robots.txt", pages.robots);
 router.get("/ads.txt", pages.adsTxt);
+router.get(`/${require("../lib/indexnow").KEY}.txt`, pages.indexNowKey);
 
 module.exports = router;

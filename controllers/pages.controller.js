@@ -7,6 +7,7 @@ const { currentIpoList } = require("../services/ipoList.service");
 const fs = require("fs");
 const path = require("path");
 const { WEB_ROOT, ADSENSE_CLIENT } = require("../config");
+const indexnow = require("../lib/indexnow");
 
 const html = (res, status, body, maxAge = 300) =>
   res.status(status).set({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": `public, max-age=${maxAge}` }).send(body);
@@ -32,6 +33,7 @@ async function entries() {
   const savedBySlug = new Map(saved.map(d => [d._id, d]));
   const savedByKey = new Map(saved.map(d => [d.key, d]));
 
+  const changed = [];
   for (const e of live) {
     const key = keyOf(e.ipo);
     // Same IPO saved before: keep its address. A different IPO already owns this address: add the year.
@@ -40,10 +42,15 @@ async function entries() {
     else if (savedBySlug.has(e.slug)) e.slug = `${e.slug}-${(e.ipo.openDate || e.ipo.listingDate || "new").slice(0, 4)}`;
     if (Date.now() - (lastSaved.get(e.slug) || 0) > SAVE_EVERY_MS) {
       lastSaved.set(e.slug, Date.now());
+      // A new page, or one whose IPO moved on (open -> closed -> listed): tell the search engines
+      const before = prior || savedBySlug.get(e.slug);
+      if (!before || before.ipo?.status !== e.ipo.status) changed.push(`/ipo/${e.slug}`);
       store.savePage({ _id: e.slug, key, name: e.ipo.name, ipo: snapshot(e.ipo), savedAt: new Date() })
         .catch(err => console.error("[PAGES] save failed:", err.message));
     }
   }
+
+  indexnow.notify(changed);
 
   const today = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
   const liveKeys = new Set(live.map(e => keyOf(e.ipo)));
@@ -163,4 +170,7 @@ function home(req, res, next) {
   res.type("html").set("Cache-Control", "no-cache").send(homeHtml);
 }
 
-module.exports = { ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots, adsTxt, home };
+// IndexNow key file (lib/indexnow.js)
+const indexNowKey = (req, res) => res.type("text/plain").set("Cache-Control", "public, max-age=86400").send(indexnow.KEY);
+
+module.exports = { indexNowKey, ipoIndex, ipoPage, registrarIndex, registrarPage, sitemap, robots, adsTxt, home };
